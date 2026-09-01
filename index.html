@@ -599,7 +599,8 @@ function setTheme(theme) {
 document.getElementById('theme-btn').addEventListener('click', (e) => {
   e.stopPropagation();
   const dd = document.getElementById('theme-dropdown');
-  dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+  // Toggle between 'none' and 'flex' (so it respects the CSS dropdown class)
+  dd.style.display = dd.style.display === 'none' || dd.style.display === '' ? 'flex' : 'none';
 });
 document.querySelectorAll('.theme-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -610,7 +611,7 @@ document.querySelectorAll('.theme-btn').forEach(btn => {
 document.addEventListener('click', (e) => {
   if (!e.target.closest('#theme-btn') && !e.target.closest('#theme-dropdown')) {
     document.getElementById('theme-dropdown').style.display = 'none';
-  }
+  } 
 });
 
 /* ========== Auth ========== */
