@@ -479,6 +479,28 @@ let groupSelectedUsers = new Set();
 
 const AVATAR_COLORS = ['#7c5cff','#00e0ff','#ff4f8b','#facc15','#34d399','#fb7185','#22d3ee','#c084fc'];
 
+// Theme Mapping for Syncing
+const portalToMessengerThemes = {
+    'staff-dark': 'midnight',
+    'staff-light': 'light',
+    'staff-warm': 'sand',
+    'staff-ocean': 'ocean',
+    'staff-forest': 'cyber',
+    'staff-sunset': 'ember'
+};
+const messengerToPortalThemes = {
+    'midnight': 'staff-dark',
+    'light': 'staff-light',
+    'sand': 'staff-warm',
+    'ocean': 'staff-ocean',
+    'cyber': 'staff-forest',
+    'ember': 'staff-sunset',
+    'spring': 'staff-light',
+    'summer': 'staff-warm',
+    'autumn': 'staff-sunset',
+    'winter': 'staff-ocean'
+};
+
 let audioCtx;
 function getAudioCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -487,819 +509,291 @@ function getAudioCtx() {
 }
 function playSound(type) {
   if (type === 'none' || !type) return;
-  const ctx = getAudioCtx();
-  const now = ctx.currentTime;
-  
-  if (type === 'chime') {
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.connect(gain1); gain1.connect(ctx.destination);
-    osc1.frequency.setValueAtTime(880, now);
-    osc1.frequency.setValueAtTime(1320, now + 0.1);
-    gain1.gain.setValueAtTime(0.15, now);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-    osc1.start(now); osc1.stop(now + 0.3);
-  } else if (type === 'pop') {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.setValueAtTime(600, now);
-    osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
-    gain.gain.setValueAtTime(0.3, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-    osc.start(now); osc.stop(now + 0.15);
-  } else if (type === 'ding') {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'triangle';
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.setValueAtTime(988, now);
-    gain.gain.setValueAtTime(0.2, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-    osc.start(now); osc.stop(now + 0.4);
-  }
+  const ctx = getAudioCtx(); const now = ctx.currentTime;
+  if (type === 'chime') { const osc1 = ctx.createOscillator(), g1 = ctx.createGain(); osc1.connect(g1); g1.connect(ctx.destination); osc1.frequency.setValueAtTime(880, now); osc1.frequency.setValueAtTime(1320, now + 0.1); g1.gain.setValueAtTime(0.15, now); g1.gain.exponentialRampToValueAtTime(0.001, now + 0.3); osc1.start(now); osc1.stop(now + 0.3); }
+  else if (type === 'pop') { const osc = ctx.createOscillator(), g = ctx.createGain(); osc.type = 'sine'; osc.connect(g); g.connect(ctx.destination); osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(200, now + 0.1); g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.15); osc.start(now); osc.stop(now + 0.15); }
+  else if (type === 'ding') { const osc = ctx.createOscillator(), g = ctx.createGain(); osc.type = 'triangle'; osc.connect(g); g.connect(ctx.destination); osc.frequency.setValueAtTime(988, now); g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.4); osc.start(now); osc.stop(now + 0.4); }
 }
 
-function getInitials(name) {
-  if (!name) return '?';
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0,2).toUpperCase();
-  return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
-}
-function colorForId(id) {
-  if (!id) return AVATAR_COLORS[0];
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
-}
-function formatTime(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  const now = new Date();
-  const diff = (now - d) / 1000;
-  if (diff < 60) return 'just now';
-  if (diff < 3600) return Math.floor(diff/60) + 'm';
-  if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-  const yesterday = new Date(now); yesterday.setDate(now.getDate()-1);
-  if (d.toDateString() === yesterday.toDateString()) return 'yesterday';
-  return d.toLocaleDateString([], {month:'short', day:'numeric'});
-}
-function toast(msg, type='') {
-  const el = document.createElement('div');
-  el.className = 'toast ' + type;
-  el.textContent = msg;
-  document.getElementById('toast-container').appendChild(el);
-  setTimeout(() => el.remove(), 3200);
-}
-function escapeHtml(s) {
-  if (!s) return '';
-  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
+function getInitials(name) { if (!name) return '?'; const p = name.trim().split(/\s+/); return p.length === 1 ? p[0].slice(0,2).toUpperCase() : (p[0][0] + p[p.length-1][0]).toUpperCase(); }
+function colorForId(id) { if (!id) return AVATAR_COLORS[0]; let h = 0; for (let i = 0; i < id.length; i++) h = id.charCodeAt(i) + ((h << 5) - h); return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length]; }
+function formatTime(iso) { if (!iso) return ''; const d = new Date(iso), now = new Date(); const diff = (now - d) / 1000; if (diff < 60) return 'just now'; if (diff < 3600) return Math.floor(diff/60) + 'm'; if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); return d.toLocaleDateString([], {month:'short', day:'numeric'}); }
+function toast(msg, type='') { const el = document.createElement('div'); el.className = 'toast ' + type; el.textContent = msg; document.getElementById('toast-container').appendChild(el); setTimeout(() => el.remove(), 3200); }
+function escapeHtml(s) { if (!s) return ''; return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
-function loadSettings() {
-  const theme = localStorage.getItem('haven_theme') || 'midnight';
-  const sound = localStorage.getItem('haven_notif_sound') || 'none';
-  setTheme(theme);
-  setSound(sound);
-}
 function setTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem('haven_theme', theme);
-  document.querySelectorAll('.theme-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.theme === theme);
-  });
+  document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.theme === theme));
+  
+  // Sync to Parent Portal
+  if (window.parent && window.parent !== window) {
+    try { window.parent.postMessage({ type: 'set_portal_theme', theme: messengerToPortalThemes[theme] || 'staff-dark' }, '*'); } catch(e) {}
+  }
 }
-function setSound(sound) {
-  localStorage.setItem('haven_notif_sound', sound);
-  document.querySelectorAll('.sound-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.sound === sound);
-  });
-}
+
+function setSound(sound) { localStorage.setItem('haven_notif_sound', sound); document.querySelectorAll('.sound-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.sound === sound)); }
 
 function toggleSettingsDropdown(btn) {
   const dd = document.getElementById('settings-dropdown');
-  if (dd.style.display === 'flex') {
-    dd.style.display = 'none';
-    return;
-  }
+  if (dd.style.display === 'flex') { dd.style.display = 'none'; return; }
   const rect = btn.getBoundingClientRect();
-  dd.style.top = (rect.bottom + 10) + 'px';
-  dd.style.left = (rect.right - 260) + 'px';
-  dd.style.display = 'flex';
+  dd.style.top = (rect.bottom + 10) + 'px'; dd.style.left = (rect.right - 260) + 'px'; dd.style.display = 'flex';
 }
 
-document.getElementById('auth-settings-btn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  toggleSettingsDropdown(e.currentTarget);
-});
-document.getElementById('app-settings-btn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  toggleSettingsDropdown(e.currentTarget);
-});
-
-document.querySelectorAll('.theme-btn').forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    setTheme(btn.dataset.theme);
-  });
-});
-
-document.querySelectorAll('.sound-btn').forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const sound = btn.dataset.sound;
-    setSound(sound);
-    playSound(sound);
-  });
-});
+document.getElementById('auth-settings-btn').addEventListener('click', (e) => { e.stopPropagation(); toggleSettingsDropdown(e.currentTarget); });
+document.getElementById('app-settings-btn').addEventListener('click', (e) => { e.stopPropagation(); toggleSettingsDropdown(e.currentTarget); });
+document.querySelectorAll('.theme-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); setTheme(btn.dataset.theme); }));
+document.querySelectorAll('.sound-btn').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); const s = btn.dataset.sound; setSound(s); playSound(s); }));
 
 document.addEventListener('click', (e) => {
-  if (!e.target.closest('#auth-settings-btn') && !e.target.closest('#app-settings-btn') && !e.target.closest('#settings-dropdown')) {
-    document.getElementById('settings-dropdown').style.display = 'none';
-  }
-  if (!e.target.closest('#chat-menu-btn') && !e.target.closest('#chat-menu-dropdown')) {
-    document.getElementById('chat-menu-dropdown').style.display = 'none';
-  }
+  if (!e.target.closest('#auth-settings-btn') && !e.target.closest('#app-settings-btn') && !e.target.closest('#settings-dropdown')) document.getElementById('settings-dropdown').style.display = 'none';
+  if (!e.target.closest('#chat-menu-btn') && !e.target.closest('#chat-menu-dropdown')) document.getElementById('chat-menu-dropdown').style.display = 'none';
 });
 
 let isSignup = false;
-function setAuthTab(signup) {
-  isSignup = signup;
-  document.getElementById('signup-fields').style.display = signup ? 'block' : 'none';
-  document.getElementById('auth-submit').textContent = signup ? 'Create Account' : 'Sign In';
-  document.getElementById('tab-signin').classList.toggle('active', !signup);
-  document.getElementById('tab-signup').classList.toggle('active', signup);
-  document.getElementById('auth-error').style.display = 'none';
-}
+function setAuthTab(signup) { isSignup = signup; document.getElementById('signup-fields').style.display = signup ? 'block' : 'none'; document.getElementById('auth-submit').textContent = signup ? 'Create Account' : 'Sign In'; document.getElementById('tab-signin').classList.toggle('active', !signup); document.getElementById('tab-signup').classList.toggle('active', signup); document.getElementById('auth-error').style.display = 'none'; }
 document.getElementById('tab-signin').addEventListener('click', () => setAuthTab(false));
 document.getElementById('tab-signup').addEventListener('click', () => setAuthTab(true));
 
 async function handleAuthSuccess(session) {
   currentUser = session.user;
   await loadMyProfile();
-  if (!myProfile) {
-    await sb.auth.signOut();
-    currentUser = null;
-    showAuth();
-    return;
-  }
-  showApp();
-  await Promise.all([loadUsers(), loadConversations()]);
-  subscribeToConversations();
+  if (!myProfile) { await sb.auth.signOut(); currentUser = null; showAuth(); return; }
+  showApp(); await Promise.all([loadUsers(), loadConversations()]); subscribeToConversations();
 }
 
 document.getElementById('auth-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  getAudioCtx(); 
-  const email = document.getElementById('auth-email').value.trim();
-  const password = document.getElementById('auth-password').value;
-  const errEl = document.getElementById('auth-error');
-  const submitBtn = document.getElementById('auth-submit');
-  errEl.style.display = 'none';
-  submitBtn.disabled = true;
-  submitBtn.innerHTML = '<span class="spinner"></span>';
-  
+  e.preventDefault(); getAudioCtx(); 
+  const email = document.getElementById('auth-email').value.trim(); const password = document.getElementById('auth-password').value;
+  const errEl = document.getElementById('auth-error'); const submitBtn = document.getElementById('auth-submit');
+  errEl.style.display = 'none'; submitBtn.disabled = true; submitBtn.innerHTML = '<span class="spinner"></span>';
   try {
     if (isSignup) {
-      const fullName = document.getElementById('auth-name').value.trim();
-      const username = document.getElementById('auth-username').value.trim();
+      const fullName = document.getElementById('auth-name').value.trim(); const username = document.getElementById('auth-username').value.trim();
       if (!fullName) throw new Error('Please enter your name');
-      const { data, error } = await sb.auth.signUp({
-        email, password,
-        options: { data: { full_name: fullName, username: username || email.split('@')[0] }}
-      });
+      const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: fullName, username: username || email.split('@')[0] }}});
       if (error) throw error;
-      if (data.session) {
-        await handleAuthSuccess(data.session);
-      } else {
-        toast('Check your email to confirm your account', 'success');
-        setAuthTab(false);
-      }
+      if (data.session) { await handleAuthSuccess(data.session); } else { toast('Check your email to confirm your account', 'success'); setAuthTab(false); }
     } else {
       const { data, error } = await sb.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      if (data.session) {
-        await handleAuthSuccess(data.session);
-      }
+      if (data.session) await handleAuthSuccess(data.session);
     }
-  } catch (err) {
-    errEl.textContent = err.message || 'Authentication failed';
-    errEl.style.display = 'block';
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = isSignup ? 'Create Account' : 'Sign In';
-  }
+  } catch (err) { errEl.textContent = err.message || 'Authentication failed'; errEl.style.display = 'block'; }
+  finally { submitBtn.disabled = false; submitBtn.textContent = isSignup ? 'Create Account' : 'Sign In'; }
 });
 
-document.getElementById('logout-btn').addEventListener('click', async () => {
-  await sb.auth.signOut();
-});
+document.getElementById('logout-btn').addEventListener('click', async () => { await sb.auth.signOut(); });
 
 async function bootstrap() {
-  loadSettings();
+  // Initial Theme Sync Logic
+  let initialTheme = localStorage.getItem('haven_theme') || 'midnight';
+  const portalTheme = localStorage.getItem('haven_portal_theme');
+  if (portalTheme && portalToMessengerThemes[portalTheme]) initialTheme = portalToMessengerThemes[portalTheme];
+  setTheme(initialTheme);
+  setSound(localStorage.getItem('haven_notif_sound') || 'none');
+
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) {
-    showAuth();
-    return;
-  }
+  if (!session) { showAuth(); return; }
   await handleAuthSuccess(session);
 }
 
-async function loadMyProfile() {
-  const { data, error } = await sb.from('profiles').select('*').eq('id', currentUser.id).maybeSingle();
-  if (error) { console.error(error); return; }
-  myProfile = data;
-}
+async function loadMyProfile() { const { data, error } = await sb.from('profiles').select('*').eq('id', currentUser.id).maybeSingle(); if (error) { console.error(error); return; } myProfile = data; }
 
-function showAuth() {
-  document.getElementById('auth-view').style.display = 'flex';
-  document.getElementById('app-view').style.display = 'none';
-}
+function showAuth() { document.getElementById('auth-view').style.display = 'flex'; document.getElementById('app-view').style.display = 'none'; }
 function showApp() {
-  document.getElementById('auth-view').style.display = 'none';
-  document.getElementById('app-view').style.display = 'block';
+  document.getElementById('auth-view').style.display = 'none'; document.getElementById('app-view').style.display = 'block';
   document.getElementById('me-name').textContent = myProfile.full_name || myProfile.username || 'User';
   document.getElementById('me-email').textContent = myProfile.email;
-  const av = document.getElementById('me-avatar');
-  av.textContent = getInitials(myProfile.full_name || myProfile.username);
-  av.style.background = myProfile.avatar_color || colorForId(myProfile.id);
+  const av = document.getElementById('me-avatar'); av.textContent = getInitials(myProfile.full_name || myProfile.username); av.style.background = myProfile.avatar_color || colorForId(myProfile.id);
 }
 
-async function loadUsers() {
-  const { data, error } = await sb.from('profiles').select('*').neq('id', currentUser.id).order('full_name', { ascending: true });
-  if (error) { console.error(error); return; }
-  allUsers = data || [];
-  renderUserDropdown('');
-}
-
+async function loadUsers() { const { data, error } = await sb.from('profiles').select('*').neq('id', currentUser.id).order('full_name', { ascending: true }); if (error) { console.error(error); return; } allUsers = data || []; renderUserDropdown(''); }
 function renderUserDropdown(query) {
-  const list = document.getElementById('user-list');
-  const empty = document.getElementById('user-list-empty');
-  const q = query.toLowerCase();
-  const filtered = allUsers.filter(u => {
-    const name = (u.full_name || '').toLowerCase();
-    const uname = (u.username || '').toLowerCase();
-    const email = (u.email || '').toLowerCase();
-    return !q || name.includes(q) || uname.includes(q) || email.includes(q);
-  });
-  if (filtered.length === 0) {
-    list.innerHTML = '';
-    empty.classList.remove('hidden');
-    return;
-  }
+  const list = document.getElementById('user-list'); const empty = document.getElementById('user-list-empty');
+  const q = query.toLowerCase(); const filtered = allUsers.filter(u => { const n = (u.full_name || '').toLowerCase(), un = (u.username || '').toLowerCase(); return !q || n.includes(q) || un.includes(q); });
+  if (filtered.length === 0) { list.innerHTML = ''; empty.classList.remove('hidden'); return; }
   empty.classList.add('hidden');
-  list.innerHTML = filtered.map(u => `
-    <div class="user-row" data-user-id="${u.id}">
-      <div class="avatar avatar-sm" style="background:${u.avatar_color || colorForId(u.id)}">${getInitials(u.full_name || u.username)}</div>
-      <div class="flex-1 min-w-0">
-        <div class="text-sm font-semibold truncate">${escapeHtml(u.full_name || u.username)}</div>
-        <div class="text-xs truncate" style="color:var(--muted)">@${escapeHtml(u.username || '')}</div>
-      </div>
-    </div>
-  `).join('');
-  list.querySelectorAll('.user-row').forEach(row => {
-    row.addEventListener('click', () => {
-      const userId = row.dataset.userId;
-      startDirectMessage(userId);
-      document.getElementById('user-dropdown').style.display = 'none';
-      document.getElementById('user-search').value = '';
-    });
-  });
+  list.innerHTML = filtered.map(u => `<div class="user-row" data-user-id="${u.id}"><div class="avatar avatar-sm" style="background:${u.avatar_color || colorForId(u.id)}">${getInitials(u.full_name || u.username)}</div><div class="flex-1 min-w-0"><div class="text-sm font-semibold truncate">${escapeHtml(u.full_name || u.username)}</div><div class="text-xs truncate" style="color:var(--muted)">@${escapeHtml(u.username || '')}</div></div></div>`).join('');
+  list.querySelectorAll('.user-row').forEach(row => row.addEventListener('click', () => { startDirectMessage(row.dataset.userId); document.getElementById('user-dropdown').style.display = 'none'; document.getElementById('user-search').value = ''; }));
 }
-
-document.getElementById('new-msg-btn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  const dd = document.getElementById('user-dropdown');
-  dd.style.display = dd.style.display === 'flex' ? 'none' : 'flex';
-  if (dd.style.display === 'flex') {
-    setTimeout(() => document.getElementById('user-search').focus(), 50);
-  }
-});
-document.getElementById('user-search').addEventListener('input', (e) => {
-  renderUserDropdown(e.target.value);
-});
-
-document.getElementById('chat-menu-btn').addEventListener('click', (e) => {
-  e.stopPropagation();
-  const dd = document.getElementById('chat-menu-dropdown');
-  dd.style.display = dd.style.display === 'flex' ? 'none' : 'flex';
-});
+document.getElementById('new-msg-btn').addEventListener('click', (e) => { e.stopPropagation(); const dd = document.getElementById('user-dropdown'); dd.style.display = dd.style.display === 'flex' ? 'none' : 'flex'; if (dd.style.display === 'flex') setTimeout(() => document.getElementById('user-search').focus(), 50); });
+document.getElementById('user-search').addEventListener('input', (e) => renderUserDropdown(e.target.value));
+document.getElementById('chat-menu-btn').addEventListener('click', (e) => { e.stopPropagation(); const dd = document.getElementById('chat-menu-dropdown'); dd.style.display = dd.style.display === 'flex' ? 'none' : 'flex'; });
 
 document.getElementById('delete-conv-btn').addEventListener('click', async () => {
-  if (!activeConversation) return;
-  if (activeConversation.created_by !== currentUser.id) {
-    toast('Only the creator can delete this conversation', 'error');
-    document.getElementById('chat-menu-dropdown').style.display = 'none';
-    return;
-  }
+  if (!activeConversation || activeConversation.created_by !== currentUser.id) { toast('Only the creator can delete this conversation', 'error'); document.getElementById('chat-menu-dropdown').style.display = 'none'; return; }
   if (confirm('Delete this entire conversation? This will remove it for all participants.')) {
     const { error } = await sb.from('conversations').delete().eq('id', activeConversation.id);
-    if (error) {
-      toast('Failed to delete conversation', 'error');
-    } else {
-      conversations = conversations.filter(c => c.id !== activeConversation.id);
-      activeConversation = null;
-      activeMessages = [];
-      document.getElementById('chat-menu-dropdown').style.display = 'none';
-      document.getElementById('chat-menu-btn').style.display = 'none';
-      document.getElementById('chat-empty').style.display = 'flex';
-      document.getElementById('message-input-area').style.display = 'none';
-      document.getElementById('messages-container').innerHTML = '';
-      document.getElementById('chat-header-content').innerHTML = '';
-      renderConversations();
-      toast('Conversation deleted', 'success');
-    }
-  } else {
-    document.getElementById('chat-menu-dropdown').style.display = 'none';
-  }
+    if (error) toast('Failed to delete conversation', 'error');
+    else { conversations = conversations.filter(c => c.id !== activeConversation.id); activeConversation = null; activeMessages = []; document.getElementById('chat-menu-dropdown').style.display = 'none'; document.getElementById('chat-menu-btn').style.display = 'none'; document.getElementById('chat-empty').style.display = 'flex'; document.getElementById('message-input-area').style.display = 'none'; document.getElementById('messages-container').innerHTML = ''; document.getElementById('chat-header-content').innerHTML = ''; renderConversations(); toast('Conversation deleted', 'success'); }
+  } else document.getElementById('chat-menu-dropdown').style.display = 'none';
 });
 
 async function loadConversations() {
-  const { data: parts, error: pe } = await sb.from('conversation_participants')
-    .select('conversation_id').eq('user_id', currentUser.id);
-  if (pe) { console.error(pe); return; }
-  if (!parts || parts.length === 0) {
-    conversations = [];
-    renderConversations();
-    return;
-  }
+  const { data: parts, error: pe } = await sb.from('conversation_participants').select('conversation_id').eq('user_id', currentUser.id);
+  if (pe) return; if (!parts || parts.length === 0) { conversations = []; renderConversations(); return; }
   const ids = parts.map(p => p.conversation_id);
-  const { data: convos, error: ce } = await sb.from('conversations')
-    .select('*').in('id', ids).order('created_at', { ascending: false });
-  if (ce) { console.error(ce); return; }
-
+  const { data: convos, error: ce } = await sb.from('conversations').select('*').in('id', ids).order('created_at', { ascending: false });
+  if (ce) return;
   const enriched = [];
   for (const c of convos) {
-    const { data: cp } = await sb.from('conversation_participants')
-      .select('user_id, profiles(*)').eq('conversation_id', c.id);
+    const { data: cp } = await sb.from('conversation_participants').select('user_id, profiles(*)').eq('conversation_id', c.id);
     const participants = (cp || []).map(p => p.profiles).filter(Boolean);
-    const { data: lastMsg } = await sb.from('messages')
-      .select('*').eq('conversation_id', c.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    const { data: lastMsg } = await sb.from('messages').select('*').eq('conversation_id', c.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
     enriched.push({ ...c, participants, lastMessage: lastMsg });
   }
-  enriched.sort((a, b) => {
-    const ta = a.lastMessage?.created_at || a.created_at;
-    const tb = b.lastMessage?.created_at || b.created_at;
-    return new Date(tb) - new Date(ta);
-  });
-  conversations = enriched;
-  renderConversations();
+  enriched.sort((a, b) => new Date(b.lastMessage?.created_at || b.created_at) - new Date(a.lastMessage?.created_at || a.created_at));
+  conversations = enriched; renderConversations();
 }
 
 function getConversationDisplay(conv) {
-  if (conv.type === 'group') {
-    return { name: conv.name || 'Unnamed Group', avatar: null, isGroup: true };
-  }
+  if (conv.type === 'group') return { name: conv.name || 'Unnamed Group', avatar: null, isGroup: true };
   const other = conv.participants.find(p => p.id !== currentUser.id);
-  return {
-    name: other ? (other.full_name || other.username || other.email) : 'Unknown',
-    avatar: other ? (other.avatar_color || colorForId(other.id)) : colorForId(conv.id),
-    initials: other ? getInitials(other.full_name || other.username) : '?',
-    isGroup: false,
-    other
-  };
+  return { name: other ? (other.full_name || other.username || other.email) : 'Unknown', avatar: other ? (other.avatar_color || colorForId(other.id)) : colorForId(conv.id), initials: other ? getInitials(other.full_name || other.username) : '?', isGroup: false, other };
 }
 
 function renderConversations() {
-  const list = document.getElementById('conv-list');
-  const empty = document.getElementById('conv-empty');
-  if (conversations.length === 0) {
-    list.innerHTML = '';
-    empty.style.display = 'block';
-    return;
-  }
+  const list = document.getElementById('conv-list'); const empty = document.getElementById('conv-empty');
+  if (conversations.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
   list.innerHTML = conversations.map(c => {
-    const info = getConversationDisplay(c);
-    const isActive = activeConversation && activeConversation.id === c.id;
+    const info = getConversationDisplay(c); const isActive = activeConversation && activeConversation.id === c.id;
     const lastPreview = c.lastMessage ? escapeHtml(c.lastMessage.content.slice(0, 40)) : '<span style="color:var(--muted-2)">No messages yet</span>';
     const lastTime = c.lastMessage ? formatTime(c.lastMessage.created_at) : formatTime(c.created_at);
-    const avatarHtml = info.isGroup
-      ? `<div class="avatar" style="background:linear-gradient(135deg,var(--accent),rgba(var(--accent-rgb), 0.8));">${c.participants.length}</div>`
-      : `<div class="avatar" style="background:${info.avatar}">${info.initials}</div>`;
-    return `
-      <div class="conv-item ${isActive ? 'active' : ''}" data-conv-id="${c.id}">
-        ${avatarHtml}
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center justify-between gap-2">
-            <div class="text-sm font-semibold truncate">${escapeHtml(info.name)}</div>
-            <div class="text-[10px] flex-shrink-0 font-medium" style="color:var(--muted-2)">${lastTime}</div>
-          </div>
-          <div class="text-xs truncate mt-0.5" style="color:var(--muted)">${lastPreview}</div>
-        </div>
-      </div>
-    `;
+    const avatarHtml = info.isGroup ? `<div class="avatar" style="background:linear-gradient(135deg,var(--accent),rgba(var(--accent-rgb), 0.8));">${c.participants.length}</div>` : `<div class="avatar" style="background:${info.avatar}">${info.initials}</div>`;
+    return `<div class="conv-item ${isActive ? 'active' : ''}" data-conv-id="${c.id}">${avatarHtml}<div class="flex-1 min-w-0"><div class="flex items-center justify-between gap-2"><div class="text-sm font-semibold truncate">${escapeHtml(info.name)}</div><div class="text-[10px] flex-shrink-0 font-medium" style="color:var(--muted-2)">${lastTime}</div></div><div class="text-xs truncate mt-0.5" style="color:var(--muted)">${lastPreview}</div></div></div>`;
   }).join('');
-  list.querySelectorAll('.conv-item').forEach(item => {
-    item.addEventListener('click', () => {
-      const id = item.dataset.convId;
-      const conv = conversations.find(c => c.id === id);
-      openConversation(conv);
-      document.getElementById('sidebar').classList.remove('open');
-    });
-  });
+  list.querySelectorAll('.conv-item').forEach(item => item.addEventListener('click', () => { openConversation(conversations.find(c => c.id === item.dataset.convId)); document.getElementById('sidebar').classList.remove('open'); }));
 }
 
 async function openConversation(conv) {
-  activeConversation = conv;
-  activeMessages = [];
-  activeParticipants = conv.participants || [];
-  renderConversations();
-  renderChatHeader();
-  document.getElementById('chat-empty').style.display = 'none';
-  document.getElementById('message-input-area').style.display = 'block';
+  activeConversation = conv; activeMessages = []; activeParticipants = conv.participants || []; renderConversations(); renderChatHeader();
+  document.getElementById('chat-empty').style.display = 'none'; document.getElementById('message-input-area').style.display = 'block';
   document.getElementById('messages-container').innerHTML = '<div class="flex items-center justify-center py-10"><div class="spinner" style="color:var(--accent)"></div></div>';
-  await loadMessages(conv.id);
-  subscribeToMessages(conv.id);
-  
-  if (activeConversation.created_by === currentUser.id) {
-    document.getElementById('chat-menu-btn').style.display = 'flex';
-  } else {
-    document.getElementById('chat-menu-btn').style.display = 'none';
-  }
+  await loadMessages(conv.id); subscribeToMessages(conv.id);
+  document.getElementById('chat-menu-btn').style.display = (activeConversation.created_by === currentUser.id) ? 'flex' : 'none';
 }
 
 function renderChatHeader() {
-  if (!activeConversation) return;
-  const info = getConversationDisplay(activeConversation);
-  const header = document.getElementById('chat-header-content');
-  if (info.isGroup) {
-    const memberNames = activeParticipants.map(p => p.full_name || p.username).join(', ');
-    header.innerHTML = `
-      <div class="flex items-center gap-3">
-        <div class="avatar avatar-sm" style="background:linear-gradient(135deg,var(--accent),rgba(var(--accent-rgb), 0.8));">${activeParticipants.length}</div>
-        <div class="min-w-0">
-          <div class="font-bold truncate font-display text-lg">${escapeHtml(info.name)}</div>
-          <div class="text-xs truncate" style="color:var(--muted)">${activeParticipants.length} members · ${escapeHtml(memberNames)}</div>
-        </div>
-      </div>
-    `;
-  } else {
-    header.innerHTML = `
-      <div class="flex items-center gap-3">
-        <div class="avatar avatar-sm" style="background:${info.avatar}">${info.initials}</div>
-        <div class="min-w-0">
-          <div class="font-bold truncate font-display text-lg">${escapeHtml(info.name)}</div>
-          <div class="text-xs truncate" style="color:var(--muted)">@${escapeHtml(info.other?.username || '')}</div>
-        </div>
-      </div>
-    `;
-  }
+  if (!activeConversation) return; const info = getConversationDisplay(activeConversation); const header = document.getElementById('chat-header-content');
+  if (info.isGroup) header.innerHTML = `<div class="flex items-center gap-3"><div class="avatar avatar-sm">${activeParticipants.length}</div><div class="min-w-0"><div class="font-bold truncate font-display text-lg">${escapeHtml(info.name)}</div><div class="text-xs truncate" style="color:var(--muted)">${activeParticipants.length} members</div></div></div>`;
+  else header.innerHTML = `<div class="flex items-center gap-3"><div class="avatar avatar-sm" style="background:${info.avatar}">${info.initials}</div><div class="min-w-0"><div class="font-bold truncate font-display text-lg">${escapeHtml(info.name)}</div></div></div>`;
 }
 
-async function loadMessages(convId) {
-  const { data, error } = await sb.from('messages')
-    .select('*, sender:profiles(*)')
-    .eq('conversation_id', convId)
-    .order('created_at', { ascending: true })
-    .limit(200);
-  if (error) { console.error(error); return; }
-  activeMessages = data || [];
-  renderMessages();
-}
+async function loadMessages(convId) { const { data, error } = await sb.from('messages').select('*, sender:profiles(*)').eq('conversation_id', convId).order('created_at', { ascending: true }).limit(200); if (error) return; activeMessages = data || []; renderMessages(); }
 
 function renderMessages() {
   const container = document.getElementById('messages-container');
-  if (activeMessages.length === 0) {
-    container.innerHTML = `
-      <div class="flex flex-col items-center justify-center h-full text-center">
-        <div class="w-14 h-14 rounded-2xl mb-3 flex items-center justify-center" style="background:var(--surface-2); border:1px solid var(--border);">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--muted-2)" stroke-width="1.8"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </div>
-        <p class="text-sm font-semibold">No messages yet</p>
-        <p class="text-xs mt-1" style="color:var(--muted)">Send the first message below</p>
-      </div>
-    `;
-    return;
-  }
-  const isGroup = activeConversation?.type === 'group';
-  let html = '';
-  let lastSender = null;
-  let lastDate = null;
-  activeMessages.forEach((m, i) => {
-    const isSent = m.sender_id === currentUser.id;
-    const sender = m.sender || {};
+  if (activeMessages.length === 0) { container.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-center"><p class="text-sm font-semibold">No messages yet</p></div>`; return; }
+  const isGroup = activeConversation?.type === 'group'; let html = ''; let lastSender = null, lastDate = null;
+  activeMessages.forEach(m => {
+    const isSent = m.sender_id === currentUser.id; const sender = m.sender || {};
     const showSenderHeader = isGroup && !isSent && m.sender_id !== lastSender;
-    const msgDate = new Date(m.created_at).toDateString();
-    const showDateDivider = msgDate !== lastDate;
-    lastDate = msgDate;
-    lastSender = m.sender_id;
-
-    if (showDateDivider) {
-      html += `<div class="flex items-center my-6"><div class="flex-1 h-px" style="background:var(--border)"></div><div class="px-4 text-[10px] uppercase tracking-widest font-bold" style="color:var(--muted-2)">${new Date(m.created_at).toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'})}</div><div class="flex-1 h-px" style="background:var(--border)"></div></div>`;
-    }
-    if (showSenderHeader) {
-      html += `<div class="flex items-center gap-2 mt-4 mb-2 px-1">
-        <div class="avatar avatar-sm" style="background:${sender.avatar_color || colorForId(sender.id)}">${getInitials(sender.full_name || sender.username)}</div>
-        <div class="text-xs font-bold">${escapeHtml(sender.full_name || sender.username)}</div>
-      </div>`;
-    }
-    
-    const actionsHtml = isSent ? `
-      <div class="msg-actions">
-        <button class="msg-action-btn" data-delete-msg="${m.id}" title="Delete Message">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-        </button>
-      </div>
-    ` : '';
-
-    html += `
-      <div class="msg-row ${isSent ? 'sent' : 'received'}">
-        ${actionsHtml}
-        ${!isSent && !showSenderHeader && isGroup ? `<div class="avatar avatar-sm" style="background:transparent; opacity:0"></div>` : ''}
-        ${!isSent && !isGroup ? `<div class="avatar avatar-sm" style="background:${sender.avatar_color || colorForId(sender.id)}">${getInitials(sender.full_name || sender.username)}</div>` : ''}
-        <div class="msg-bubble ${isSent ? 'sent' : 'received'}">${escapeHtml(m.content)}</div>
-      </div>
-      <div class="msg-meta" style="text-align:${isSent ? 'right' : 'left'};">${formatTime(m.created_at)}</div>
-    `;
+    const msgDate = new Date(m.created_at).toDateString(); const showDateDivider = msgDate !== lastDate; lastDate = msgDate; lastSender = m.sender_id;
+    if (showDateDivider) html += `<div class="flex items-center my-6"><div class="flex-1 h-px" style="background:var(--border)"></div><div class="px-4 text-[10px] uppercase font-bold" style="color:var(--muted-2)">${new Date(m.created_at).toLocaleDateString([], {month:'short',day:'numeric'})}</div><div class="flex-1 h-px" style="background:var(--border)"></div></div>`;
+    if (showSenderHeader) html += `<div class="flex items-center gap-2 mt-4 mb-2 px-1"><div class="avatar avatar-sm" style="background:${sender.avatar_color || colorForId(sender.id)}">${getInitials(sender.full_name || sender.username)}</div><div class="text-xs font-bold">${escapeHtml(sender.full_name || sender.username)}</div></div>`;
+    html += `<div class="msg-row ${isSent ? 'sent' : 'received'}">${!isSent && !isGroup ? `<div class="avatar avatar-sm" style="background:${sender.avatar_color || colorForId(sender.id)}">${getInitials(sender.full_name || sender.username)}</div>` : ''}<div class="msg-bubble ${isSent ? 'sent' : 'received'}">${escapeHtml(m.content)}</div></div><div class="msg-meta" style="text-align:${isSent ? 'right' : 'left'};">${formatTime(m.created_at)}</div>`;
   });
-  container.innerHTML = html;
-  
-  container.querySelectorAll('[data-delete-msg]').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const msgId = btn.dataset.deleteMsg;
-      if (confirm('Delete this message?')) {
-        const { error } = await sb.from('messages').delete().eq('id', msgId);
-        if (error) {
-          toast('Failed to delete message', 'error');
-        } else {
-          activeMessages = activeMessages.filter(m => m.id !== msgId);
-          renderMessages();
-          toast('Message deleted', 'success');
-        }
-      }
-    });
-  });
-
-  requestAnimationFrame(() => {
-    container.scrollTop = container.scrollHeight;
-  });
+  container.innerHTML = html; requestAnimationFrame(() => { container.scrollTop = container.scrollHeight; });
 }
 
 const msgInput = document.getElementById('msg-input');
-msgInput.addEventListener('input', () => {
-  msgInput.style.height = 'auto';
-  msgInput.style.height = Math.min(msgInput.scrollHeight, 120) + 'px';
-});
-msgInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    document.getElementById('msg-form').requestSubmit();
-  }
-});
-
+msgInput.addEventListener('input', () => { msgInput.style.height = 'auto'; msgInput.style.height = Math.min(msgInput.scrollHeight, 120) + 'px'; });
+msgInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('msg-form').requestSubmit(); } });
 document.getElementById('msg-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const content = msgInput.value.trim();
-  if (!content || !activeConversation) return;
-  msgInput.value = '';
-  msgInput.style.height = 'auto';
-  
-  const { error } = await sb.from('messages').insert({
-    conversation_id: activeConversation.id,
-    sender_id: currentUser.id,
-    content
-  });
-  if (error) {
-    toast('Failed to send message', 'error');
-  }
+  e.preventDefault(); const content = msgInput.value.trim(); if (!content || !activeConversation) return; msgInput.value = ''; msgInput.style.height = 'auto';
+  const { error } = await sb.from('messages').insert({ conversation_id: activeConversation.id, sender_id: currentUser.id, content });
+  if (error) toast('Failed to send message', 'error');
 });
 
 async function startDirectMessage(otherUserId) {
-  const { data: myParts } = await sb.from('conversation_participants')
-    .select('conversation_id, conversations!inner(*)')
-    .eq('user_id', currentUser.id)
-    .eq('conversations.type', 'direct');
-  
-  if (myParts) {
-    for (const p of myParts) {
-      const { data: theirPart } = await sb.from('conversation_participants')
-        .select('user_id').eq('conversation_id', p.conversation_id).eq('user_id', otherUserId).maybeSingle();
-      if (theirPart) {
-        const conv = conversations.find(c => c.id === p.conversation_id);
-        if (conv) { openConversation(conv); return; }
-        const { data: fullConv } = await sb.from('conversations').select('*').eq('id', p.conversation_id).maybeSingle();
-        if (fullConv) {
-          const { data: cp } = await sb.from('conversation_participants')
-            .select('user_id, profiles(*)').eq('conversation_id', p.conversation_id);
-          const participants = (cp || []).map(x => x.profiles).filter(Boolean);
-          const fullConvWith = { ...fullConv, participants, lastMessage: null };
-          conversations.unshift(fullConvWith);
-          renderConversations();
-          openConversation(fullConvWith);
-          return;
-        }
-      }
-    }
-  }
-  
-  const { data: newConv, error } = await sb.from('conversations')
-    .insert({ type: 'direct', created_by: currentUser.id })
-    .select().single();
-  if (error) { toast('Failed to create conversation', 'error'); return; }
-  
-  await sb.from('conversation_participants').insert([
-    { conversation_id: newConv.id, user_id: currentUser.id },
-    { conversation_id: newConv.id, user_id: otherUserId }
-  ]);
-  
+  const { data: myParts } = await sb.from('conversation_participants').select('conversation_id, conversations!inner(*)').eq('user_id', currentUser.id).eq('conversations.type', 'direct');
+  if (myParts) { for (const p of myParts) { const { data: theirPart } = await sb.from('conversation_participants').select('user_id').eq('conversation_id', p.conversation_id).eq('user_id', otherUserId).maybeSingle(); if (theirPart) { const conv = conversations.find(c => c.id === p.conversation_id); if (conv) { openConversation(conv); return; } } } }
+  const { data: newConv, error } = await sb.from('conversations').insert({ type: 'direct', created_by: currentUser.id }).select().single();
+  if (error) { toast('Failed', 'error'); return; }
+  await sb.from('conversation_participants').insert([{ conversation_id: newConv.id, user_id: currentUser.id }, { conversation_id: newConv.id, user_id: otherUserId }]);
   const otherUser = allUsers.find(u => u.id === otherUserId);
   const convWith = { ...newConv, participants: [myProfile, otherUser].filter(Boolean), lastMessage: null };
-  conversations.unshift(convWith);
-  renderConversations();
-  openConversation(convWith);
-  toast('Conversation started', 'success');
+  conversations.unshift(convWith); renderConversations(); openConversation(convWith); toast('Conversation started', 'success');
 }
 
-document.getElementById('new-group-btn').addEventListener('click', () => {
-  groupSelectedUsers.clear();
-  document.getElementById('group-name').value = '';
-  document.getElementById('group-search').value = '';
-  document.getElementById('group-error').style.display = 'none';
-  renderGroupUserList('');
-  renderGroupSelected();
-  document.getElementById('group-modal').style.display = 'flex';
-});
-function closeGroupModal() {
-  document.getElementById('group-modal').style.display = 'none';
-}
-document.getElementById('group-search').addEventListener('input', (e) => {
-  renderGroupUserList(e.target.value);
-});
+document.getElementById('new-group-btn').addEventListener('click', () => { groupSelectedUsers.clear(); document.getElementById('group-name').value = ''; document.getElementById('group-search').value = ''; document.getElementById('group-error').style.display = 'none'; renderGroupUserList(''); renderGroupSelected(); document.getElementById('group-modal').style.display = 'flex'; });
+document.getElementById('group-search').addEventListener('input', (e) => renderGroupUserList(e.target.value));
+
 function renderGroupUserList(query) {
-  const list = document.getElementById('group-user-list');
-  const q = query.toLowerCase();
-  const filtered = allUsers.filter(u => {
-    const name = (u.full_name || '').toLowerCase();
-    const uname = (u.username || '').toLowerCase();
-    return !q || name.includes(q) || uname.includes(q);
-  });
-  if (filtered.length === 0) {
-    list.innerHTML = `<div class="p-4 text-center text-xs" style="color:var(--muted)">No staff found</div>`;
-    return;
-  }
-  list.innerHTML = filtered.map(u => `
-    <div class="user-row" data-user-id="${u.id}">
-      <div class="checkbox ${groupSelectedUsers.has(u.id) ? 'checked' : ''}"></div>
-      <div class="avatar avatar-sm" style="background:${u.avatar_color || colorForId(u.id)}">${getInitials(u.full_name || u.username)}</div>
-      <div class="flex-1 min-w-0">
-        <div class="text-sm font-semibold truncate">${escapeHtml(u.full_name || u.username)}</div>
-        <div class="text-xs truncate" style="color:var(--muted)">@${escapeHtml(u.username || '')}</div>
-      </div>
-    </div>
-  `).join('');
-  list.querySelectorAll('.user-row').forEach(row => {
-    row.addEventListener('click', () => {
-      const id = row.dataset.userId;
-      if (groupSelectedUsers.has(id)) groupSelectedUsers.delete(id);
-      else groupSelectedUsers.add(id);
-      renderGroupUserList(document.getElementById('group-search').value);
-      renderGroupSelected();
-    });
-  });
+  const list = document.getElementById('group-user-list'); const q = query.toLowerCase();
+  const filtered = allUsers.filter(u => { const n = (u.full_name || '').toLowerCase(); return !q || n.includes(q); });
+  if (filtered.length === 0) { list.innerHTML = `<div class="p-4 text-center text-xs" style="color:var(--muted)">No staff found</div>`; return; }
+  list.innerHTML = filtered.map(u => `<div class="user-row" data-user-id="${u.id}"><div class="checkbox ${groupSelectedUsers.has(u.id) ? 'checked' : ''}"></div><div class="avatar avatar-sm" style="background:${u.avatar_color || colorForId(u.id)}">${getInitials(u.full_name || u.username)}</div><div class="flex-1 min-w-0"><div class="text-sm font-semibold truncate">${escapeHtml(u.full_name || u.username)}</div></div></div>`).join('');
+  list.querySelectorAll('.user-row').forEach(row => row.addEventListener('click', () => { const id = row.dataset.userId; if (groupSelectedUsers.has(id)) groupSelectedUsers.delete(id); else groupSelectedUsers.add(id); renderGroupUserList(document.getElementById('group-search').value); renderGroupSelected(); }));
 }
 function renderGroupSelected() {
   const container = document.getElementById('group-selected');
-  if (groupSelectedUsers.size === 0) {
-    container.innerHTML = '';
-    container.style.display = 'none';
-    return;
-  }
+  if (groupSelectedUsers.size === 0) { container.innerHTML = ''; container.style.display = 'none'; return; }
   container.style.display = 'flex';
-  container.innerHTML = [...groupSelectedUsers].map(id => {
-    const u = allUsers.find(x => x.id === id);
-    if (!u) return '';
-    return `<div class="chip">
-      <div class="avatar avatar-sm" style="width:22px;height:22px;font-size:9px;border-radius:6px;background:${u.avatar_color || colorForId(u.id)}">${getInitials(u.full_name || u.username)}</div>
-      ${escapeHtml(u.full_name || u.username)}
-      <button data-remove="${id}" style="color:var(--accent);background:none;border:none;cursor:pointer;font-size:16px;line-height:1;margin-left:4px;">×</button>
-    </div>`;
-  }).join('');
-  container.querySelectorAll('[data-remove]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      groupSelectedUsers.delete(btn.dataset.remove);
-      renderGroupUserList(document.getElementById('group-search').value);
-      renderGroupSelected();
-    });
-  });
+  container.innerHTML = [...groupSelectedUsers].map(id => { const u = allUsers.find(x => x.id === id); if (!u) return ''; return `<div class="chip"><div class="avatar avatar-sm" style="width:22px;height:22px;font-size:9px;border-radius:6px;background:${u.avatar_color || colorForId(u.id)}">${getInitials(u.full_name || u.username)}</div>${escapeHtml(u.full_name || u.username)}<button data-remove="${id}" style="color:var(--accent);background:none;border:none;cursor:pointer;font-size:16px;line-height:1;margin-left:4px;">×</button></div>`; }).join('');
+  container.querySelectorAll('[data-remove]').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); groupSelectedUsers.delete(btn.dataset.remove); renderGroupUserList(document.getElementById('group-search').value); renderGroupSelected(); }));
 }
 document.getElementById('create-group-btn').addEventListener('click', async () => {
-  const name = document.getElementById('group-name').value.trim();
-  const errEl = document.getElementById('group-error');
-  errEl.style.display = 'none';
+  const name = document.getElementById('group-name').value.trim(); const errEl = document.getElementById('group-error'); errEl.style.display = 'none';
   if (!name) { errEl.textContent = 'Please enter a group name'; errEl.style.display = 'block'; return; }
   if (groupSelectedUsers.size === 0) { errEl.textContent = 'Please select at least one member'; errEl.style.display = 'block'; return; }
-  const btn = document.getElementById('create-group-btn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>';
+  const btn = document.getElementById('create-group-btn'); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
   try {
-    const { data: newConv, error } = await sb.from('conversations')
-      .insert({ name, type: 'group', created_by: currentUser.id })
-      .select().single();
+    const { data: newConv, error } = await sb.from('conversations').insert({ name, type: 'group', created_by: currentUser.id }).select().single();
     if (error) throw error;
-    const inserts = [{ conversation_id: newConv.id, user_id: currentUser.id }];
-    groupSelectedUsers.forEach(uid => inserts.push({ conversation_id: newConv.id, user_id: uid }));
-    const { error: pe } = await sb.from('conversation_participants').insert(inserts);
-    if (pe) throw pe;
+    const inserts = [{ conversation_id: newConv.id, user_id: currentUser.id }]; groupSelectedUsers.forEach(uid => inserts.push({ conversation_id: newConv.id, user_id: uid }));
+    const { error: pe } = await sb.from('conversation_participants').insert(inserts); if (pe) throw pe;
     const participants = [myProfile, ...allUsers.filter(u => groupSelectedUsers.has(u.id))];
     const convWith = { ...newConv, participants, lastMessage: null };
-    conversations.unshift(convWith);
-    renderConversations();
-    openConversation(convWith);
-    closeGroupModal();
-    toast('Group created', 'success');
-  } catch (err) {
-    errEl.textContent = err.message || 'Failed to create group';
-    errEl.style.display = 'block';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Create Group';
-  }
+    conversations.unshift(convWith); renderConversations(); openConversation(convWith); document.getElementById('group-modal').style.display = 'none'; toast('Group created', 'success');
+  } catch (err) { errEl.textContent = err.message || 'Failed'; errEl.style.display = 'block'; }
+  finally { btn.disabled = false; btn.textContent = 'Create Group'; }
 });
 
 function subscribeToMessages(convId) {
   if (realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
-  realtimeChannel = sb.channel('messages-' + convId)
-    .on('postgres_changes', {
-      event: 'INSERT', schema: 'public', table: 'messages',
-      filter: `conversation_id=eq.${convId}`
-    }, async (payload) => {
+  mRealtimeChannel = sb.channel('messages-' + convId)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${convId}` }, async (payload) => {
       const { data: sender } = await sb.from('profiles').select('*').eq('id', payload.new.sender_id).maybeSingle();
       const msg = { ...payload.new, sender: sender };
-      if (activeMessages.some(m => m.id === msg.id)) return;
-      activeMessages.push(msg);
-      renderMessages();
-      if (activeConversation && activeConversation.id === convId) {
-        activeConversation.lastMessage = msg;
-        renderConversations();
-      }
-      
-      if (payload.new.sender_id !== currentUser.id) {
-        const sound = localStorage.getItem('haven_notif_sound') || 'none';
-        playSound(sound);
-      }
+      if (mActiveMsgs.some(m => m.id === msg.id)) return;
+      mActiveMsgs.push(msg); renderMessages();
+      if (mActiveConv && mActiveConv.id === convId) { mActiveConv.lastMessage = msg; renderConversations(); }
+      if (payload.new.sender_id !== mUser.id) { const sound = localStorage.getItem('haven_notif_sound') || 'none'; playSound(sound); }
     })
-    .on('postgres_changes', {
-      event: 'DELETE', schema: 'public', table: 'messages',
-      filter: `conversation_id=eq.${convId}`
-    }, (payload) => {
-      activeMessages = activeMessages.filter(m => m.id !== payload.old.id);
-      renderMessages();
-    })
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${convId}` }, (payload) => { mActiveMsgs = mActiveMsgs.filter(m => m.id !== payload.old.id); renderMessages(); })
     .subscribe();
 }
 
 function subscribeToConversations() {
   sb.channel('conversations')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversation_participants' }, async (payload) => {
-      if (payload.new.user_id === currentUser.id) {
-        await loadConversations();
-      }
-    })
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversation_participants' }, async (payload) => { if (payload.new.user_id === mUser.id) await loadConversations(); })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
-      const conv = conversations.find(c => c.id === payload.new.conversation_id);
-      if (conv && (!activeConversation || activeConversation.id !== conv.id)) {
-        conv.lastMessage = payload.new;
-        conversations.sort((a, b) => {
-          const ta = a.lastMessage?.created_at || a.created_at;
-          const tb = b.lastMessage?.created_at || b.created_at;
-          return new Date(tb) - new Date(ta);
-        });
-        renderConversations();
-      }
+      const conv = mConversations.find(c => c.id === payload.new.conversation_id);
+      if (conv && (!mActiveConv || mActiveConv.id !== conv.id)) { conv.lastMessage = payload.new; mConversations.sort((a, b) => new Date(b.lastMessage?.created_at || b.created_at) - new Date(a.lastMessage?.created_at || a.created_at)); renderConversations(); }
     })
     .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'conversations' }, (payload) => {
-      conversations = conversations.filter(c => c.id !== payload.old.id);
-      if (activeConversation && activeConversation.id === payload.old.id) {
-        activeConversation = null;
-        activeMessages = [];
-        document.getElementById('chat-menu-btn').style.display = 'none';
-        document.getElementById('chat-empty').style.display = 'flex';
-        document.getElementById('message-input-area').style.display = 'none';
-        document.getElementById('messages-container').innerHTML = '';
-        document.getElementById('chat-header-content').innerHTML = '';
-      }
+      mConversations = mConversations.filter(c => c.id !== payload.old.id);
+      if (mActiveConv && mActiveConv.id === payload.old.id) { mActiveConv = null; mActiveMsgs = []; document.getElementById('messenger-chat-menu-btn').style.display = 'none'; document.getElementById('messenger-chat-empty').style.display = 'flex'; document.getElementById('messenger-message-input-area').style.display = 'none'; document.getElementById('messenger-messages-container').innerHTML = ''; document.getElementById('messenger-chat-header-content').innerHTML = ''; }
       renderConversations();
     })
     .subscribe();
 }
 
-document.getElementById('mobile-menu').addEventListener('click', () => {
-  document.getElementById('sidebar').classList.add('open');
-});
-document.getElementById('mobile-close').addEventListener('click', () => {
-  document.getElementById('sidebar').classList.remove('open');
-});
+document.getElementById('mobile-menu').addEventListener('click', () => document.getElementById('sidebar').classList.add('open'));
+document.getElementById('mobile-close').addEventListener('click', () => document.getElementById('sidebar').classList.remove('open'));
 
 sb.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_OUT') {
-    currentUser = null;
-    myProfile = null;
-    if (realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
-    showAuth();
+  if (event === 'SIGNED_OUT') { currentUser = null; myProfile = null; if (realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; } showAuth(); }
+});
+
+// Listen for theme changes from Parent Portal
+window.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'set_messenger_theme') {
+    setTheme(e.data.theme);
   }
 });
 

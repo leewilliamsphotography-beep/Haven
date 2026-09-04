@@ -2,14 +2,10 @@
 if ('scrollRestoration' in history) { history.scrollRestoration = 'manual'; }
 window.addEventListener('load', function() { window.scrollTo(0, 0); });
 
-// Only register Service Worker on the main site, NOT on staff.html or bingo
 if ('serviceWorker' in navigator && !window.location.pathname.endsWith('staff.html') && !window.location.pathname.includes('bingo')) { 
-    window.addEventListener('load', () => { 
-        navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed: ', err)); 
-    }); 
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed: ', err)); }); 
 }
 
-// Declare globally but don't initialize yet!
 let supabaseClient;
 
 function safeGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
@@ -42,7 +38,6 @@ const TimeModule=(function(){
         const t=n.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
         const e=document.getElementById('liveTimeDate');
         if(e)e.textContent=d+' • '+t;
-        
         const badge=document.getElementById('quietHoursBadge');
         if(badge){
             const hours=n.getHours();
@@ -50,15 +45,8 @@ const TimeModule=(function(){
             const currentMinutes=hours*60+minutes;
             const isLunch = currentMinutes >= 720 && currentMinutes <= 810; 
             const isEveningMorning = currentMinutes >= 1170 || currentMinutes <= 480; 
-            if(isLunch || isEveningMorning){
-                badge.textContent="Quiet Hours";
-                badge.className="quiet-badge resting-hours";
-                badge.style.display="inline-block";
-            } else {
-                badge.textContent="Active Hours";
-                badge.className="quiet-badge active-hours";
-                badge.style.display="inline-block";
-            }
+            if(isLunch || isEveningMorning){ badge.textContent="Quiet Hours"; badge.className="quiet-badge resting-hours"; badge.style.display="inline-block"; } 
+            else { badge.textContent="Active Hours"; badge.className="quiet-badge active-hours"; badge.style.display="inline-block"; }
         }
     }
     function init(){u();setInterval(u,1000)}
@@ -75,19 +63,15 @@ const ToastModule=(function(){
         c.appendChild(t);
         setTimeout(()=>t.classList.add('show'),100);
         setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400)},5000);
-        if("Notification" in window && Notification.permission==="granted"){
-            try { new Notification("Tinkers Hatch Update", { body: msg }); } catch(e) {}
-        }
+        if("Notification" in window && Notification.permission==="granted"){ try { new Notification("Tinkers Hatch Update", { body: msg }); } catch(e) {} }
     }
     async function requestPermission(){
         if(!("Notification" in window)){ ToastModule.show("Notifications not supported on this device."); return; }
         if(Notification.permission==="granted"){ ToastModule.show("Notifications are already enabled!"); return; }
         if(Notification.permission!=="denied"){
             const perm=await Notification.requestPermission();
-            if(perm==="granted"){
-                ToastModule.show("Push notifications enabled! You'll get updates now.");
-                new Notification("Tinkers Hatch", { body: "Notifications successfully turned on!" });
-            } else { ToastModule.show("Notifications were blocked. You can change this in your browser settings."); }
+            if(perm==="granted"){ ToastModule.show("Push notifications enabled! You'll get updates now."); new Notification("Tinkers Hatch", { body: "Notifications successfully turned on!" }); } 
+            else { ToastModule.show("Notifications were blocked. You can change this in your browser settings."); }
         } else { ToastModule.show("Notifications are blocked in your browser settings."); }
     }
     function init(){
@@ -95,10 +79,7 @@ const ToastModule=(function(){
             const es=new EventSource('https://ntfy.sh/tinkers-hatch-live/sse');
             es.addEventListener('message',e=>{ try { const d=JSON.parse(e.data); if(d.message) show(d.message); } catch(err){} });
         }catch(e){console.error('SSE failed',e)}
-        if(notifBtn){
-            if("Notification" in window && Notification.permission==="granted"){ notifBtn.classList.add('active'); notifBtn.setAttribute('aria-pressed','true'); }
-            notifBtn.addEventListener('click', requestPermission);
-        }
+        if(notifBtn){ if("Notification" in window && Notification.permission==="granted"){ notifBtn.classList.add('active'); notifBtn.setAttribute('aria-pressed','true'); } notifBtn.addEventListener('click', requestPermission); }
     }
     return{init,show};
 })();
@@ -108,29 +89,13 @@ const SplashModule = (function () {
     const splash = document.getElementById('splash-screen');
     const enterBtn = document.getElementById('enterAppBtn');
     if (!splash || !enterBtn) return;
-    
     const hasVisited = safeGet('th-visited');
-
-    function closeSplash() {
-      splash.classList.add('hidden');
-      document.body.style.overflow = 'auto';
-      safeSet('th-visited', 'true');
-    }
-
-    if (hasVisited === 'true') {
-      splash.classList.add('hidden');
-      document.body.style.overflow = 'auto';
-    } else {
-      document.body.style.overflow = 'hidden';
-    }
-
+    function closeSplash() { splash.classList.add('hidden'); document.body.style.overflow = 'auto'; safeSet('th-visited', 'true'); }
+    if (hasVisited === 'true') { splash.classList.add('hidden'); document.body.style.overflow = 'auto'; } 
+    else { document.body.style.overflow = 'hidden'; }
     enterBtn.addEventListener('click', closeSplash);
     document.querySelectorAll('.splash-shortcut').forEach(btn => {
-      btn.addEventListener('click', evt => {
-        evt.preventDefault(); closeSplash();
-        const target = btn.getAttribute('href');
-        setTimeout(() => { const el = document.querySelector(target); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 800);
-      });
+      btn.addEventListener('click', evt => { evt.preventDefault(); closeSplash(); const target = btn.getAttribute('href'); setTimeout(() => { const el = document.querySelector(target); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 800); });
     });
     const versionTag = document.getElementById('version-tag');
     if (versionTag) versionTag.textContent = 'Version 3.5';
@@ -152,7 +117,7 @@ const ThemeModule=(function(){const b=document.body,k='th-theme',c=['theme-dark'
 const FontSizeModule=(function(){const h=document.documentElement,b=document.body,k='th-fontsize',c=['th-text-xs','th-text-sm','th-text-md','th-text-lg','th-text-bold'];function set(s){c.forEach(x=>h.classList.remove(x));c.forEach(x=>b.classList.remove(x));h.classList.add('th-text-'+s);if(s==='bold')b.classList.add('th-text-bold');safeSet(k,s);document.querySelectorAll('.font-btn').forEach(btn=>btn.setAttribute('aria-pressed',btn.dataset.size===s))}function init(){const btns=document.querySelectorAll('.font-btn');if(!btns.length)return;let s='md';try{s=safeGet(k)||'md'}catch(e){}set(s);btns.forEach(btn=>btn.addEventListener('click',()=>set(btn.dataset.size)))}return{init}})();
 const DyslexiaModule=(function(){const b=document.body,k='th-dyslexia';function set(state){if(state==='on')b.classList.add('dyslexia-mode');else b.classList.remove('dyslexia-mode');safeSet(k,state);document.querySelectorAll('.dyslexia-btn').forEach(btn=>btn.setAttribute('aria-pressed',btn.dataset.dyslexia===state));}function init(){const btns=document.querySelectorAll('.dyslexia-btn');if(!btns.length)return;let s=safeGet(k)||'off';set(s);btns.forEach(btn=>btn.addEventListener('click',()=>set(btn.dataset.dyslexia)));}return{init};})();
 const PaletteModule=(function(){const b=document.body,k='th-palette',p=['palette-ocean','palette-sunset','palette-berry'];function set(v){p.forEach(x=>b.classList.remove(x));b.classList.remove('season-winter','season-spring','season-summer','season-autumn');if(v!=='nature')b.classList.add('palette-'+v);safeSet(k,v);document.querySelectorAll('.palette-btn').forEach(btn=>btn.setAttribute('aria-pressed',btn.dataset.palette===v));if(v!=='nature')document.getElementById('seasonal-bg').innerHTML='';else{const t=safeGet('th-theme');if(!t||t==='light'){const s=SeasonalModule.getCurrentSeason();b.classList.add('season-'+s);generateSeasonalBackground(s)}}}function init(){const btns=document.querySelectorAll('.palette-btn');if(!btns.length)return;let s='nature';try{s=safeGet(k)||'nature'}catch(e){}set(s);btns.forEach(btn=>btn.addEventListener('click',()=>set(btn.dataset.palette)))}return{init}})();
-const RevealModule=(function(){function init(){if(!('IntersectionObserver'in window)){document.querySelectorAll('.reveal').forEach(e=>e.classList.add('in'));return}const ob=new IntersectionObserver(e=>{e.forEach(en=>{if(en.isIntersecting){en.target.classList.add('in');ob.unobserve(en.target)}})},{threshold:0, rootMargin:'0px 0px -10% 0px'});document.querySelectorAll('.reveal').forEach(e=>ob.observe(e))}return{init}})();
+const RevealModule=(function(){function init(){if(!('IntersectionObserver'in window)){document.querySelectorAll('.reveal').forEach(e=>e.classList.add('in'));return}const ob=new IntersectionObserver(e=>{e.forEach(en=>{if(en.isIntersecting){en.target.classList.add('in');ob.unobserve(en.target)}})},{threshold:0,rootMargin:'0px 0px -10% 0px'});document.querySelectorAll('.reveal').forEach(e=>ob.observe(e))}return{init}})();
 const MoodModule=(function(){const r={happy:{t:"We're glad you're feeling happy!",b:"Maybe today is a good day to share that with someone. A smile, a wave, or a 'good morning' can make someone else's day brighter too."},calm:{t:"Calm is a lovely way to feel.",b:"The garden is a beautiful spot for quiet moments today. There's a bench by the apple tree that catches the morning sun."},curious:{t:"Curiosity is a wonderful thing.",b:"There's a new art project starting this afternoon — trying something new is always welcome, even just to watch at first."},tired:{t:"It's okay to feel tired.",b:"Be gentle with yourself today. The cozy lounge has comfortable chairs and a pot of tea is never far away. Rest counts as doing something."},excited:{t:"How lovely — excitement!",b:"Channel that energy! Today's baking session is making bread rolls, and there's a film afternoon with proper popcorn at 3pm."}};function init(){const btns=document.querySelectorAll('.mood-btn'),md=document.getElementById('moodDefault'),mm=document.getElementById('moodMessage');if(!btns.length||!md||!mm)return;btns.forEach(btn=>btn.addEventListener('click',()=>{const k=btn.dataset.mood,res=r[k];if(!res)return;btns.forEach(b=>b.classList.remove('active'));btn.classList.add('active');md.hidden=true;mm.hidden=false;mm.innerHTML=`<div style="max-width:600px;margin:0 auto;"><div class="display font-extrabold text-xl mb-4" style="color:var(--bark)">${res.t}</div><p style="color:var(--bark-soft);line-height:1.6;">${res.b}</p></div>`}))}return{init}})();
 const LightboxModule=(function(){function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}let imgs=[];const fallbackImgs=shuffle([{src:'https://i.ibb.co/xSq92n0r/123-1.jpg',alt:'Beautiful flower 1'},{src:'https://i.ibb.co/WNjYC10y/123-2.jpg',alt:'Beautiful flower 2'},{src:'https://i.ibb.co/Y7WfbmDV/123-3.jpg',alt:'Beautiful flower 3'},{src:'https://i.ibb.co/wFBgfMtX/123-4.jpg',alt:'Beautiful flower 4'},{src:'https://i.ibb.co/4nKQ3X6s/123-5.jpg',alt:'Beautiful flower 5'},{src:'https://i.ibb.co/dsc78qPJ/123-6.jpg',alt:'Beautiful flower 6'}]);let cur=0,lb,li,lc,lp,ln,lct,g,anim=false,tsx=0;async function loadImages(){if(!supabaseClient){imgs=fallbackImgs;renderGallery();return;}try{const{data,error}=await supabaseClient.storage.from('gallery').list('',{limit:100,offset:0,sortBy:{column:'created_at',order:'desc'}});if(data&&data.length>0){imgs=data.filter(file=>!file.name.startsWith('.')).map(file=>{const{data:urlData}=supabaseClient.storage.from('gallery').getPublicUrl(file.name);let alt='Gallery Photo';if(file.name.includes('_caption_')){const match=file.name.match(/_caption_([^_]+)/);if(match&&match[1]){alt=match[1].replace(/-/g,' ');}}return{src:urlData.publicUrl,alt:alt};});}else{imgs=fallbackImgs;}}catch(e){imgs=fallbackImgs;}renderGallery();}function renderGallery(){if(!g)return;g.innerHTML='';if(imgs.length===0){g.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">No photos yet.</p>';return;}imgs.slice(0,6).forEach((io,idx)=>{const t=document.createElement('img');t.src=io.src;t.alt=`View ${io.alt}`;t.className='gallery-thumb blur-load';t.loading='lazy';t.addEventListener('load',()=>t.classList.add('loaded'));t.addEventListener('click',()=>o(idx));g.appendChild(t);});const v=document.createElement('button');v.className='gallery-cta';v.setAttribute('aria-label','Open full photo gallery');v.innerHTML=`<div class="gallery-cta-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2-3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></div><div class="gallery-cta-text">View All ${imgs.length} Photos</div>`;v.addEventListener('click',()=>o(0));g.appendChild(v);}function pl(){for(let i=-1;i<=2;i++){const idx=(cur+i+imgs.length)%imgs.length;const img=new Image();img.src=imgs[idx].src}}function r(d){if(anim)return;anim=true;const oc=d==='next'?'flip-out-next':'flip-out-prev',ic=d==='next'?'flip-in-next':'flip-in-prev';li.classList.add(oc);li.classList.remove('flip-in-next','flip-in-prev');void li.offsetWidth;setTimeout(()=>{li.src=imgs[cur].src;li.alt=imgs[cur].alt;lct.textContent=`${cur+1} / ${imgs.length}`;li.classList.remove(oc);void li.offsetWidth;li.classList.add(ic);setTimeout(()=>{anim=false;pl()},250)},250)}function o(i){cur=i;li.classList.remove('flip-in-next','flip-in-prev','flip-out-next','flip-out-prev');li.src=imgs[cur].src;li.alt=imgs[cur].alt;lct.textContent=`${cur+1} / ${imgs.length}`;lb.classList.add('active');anim=false;pl()}function c(){lb.classList.remove('active')}function n(){if(anim)return;cur=(cur+1)%imgs.length;r('next')}function p(){if(anim)return;cur=(cur-1+imgs.length)%imgs.length;r('prev')}function hk(e){if(!lb.classList.contains('active'))return;switch(e.key){case'Escape':c();break;case'ArrowRight':n();break;case'ArrowLeft':p();break}}function hts(e){tsx=e.changedTouches[0].clientX}function hte(e){if(!lb.classList.contains('active'))return;const tex=e.changedTouches[0].clientX,d=tex-tsx;if(Math.abs(d)>50){if(d<0)n();else p()}}function init(){lb=document.getElementById('lightbox');li=document.getElementById('lightboxImg');lc=document.getElementById('lightboxClose');lp=document.getElementById('lightboxPrev');ln=document.getElementById('lightboxNext');lct=document.getElementById('lightboxCounter');g=document.getElementById('galleryGrid');if(!lb||!g)return;loadImages();lc.addEventListener('click',c);ln.addEventListener('click',e=>{e.stopPropagation();n()});lp.addEventListener('click',e=>{e.stopPropagation();p()});li.addEventListener('click',e=>{e.stopPropagation();n()});lb.addEventListener('click',e=>{if(e.target===lb)c()});document.addEventListener('keydown',hk);lb.addEventListener('touchstart',hts,{passive:true});lb.addEventListener('touchend',hte,{passive:true})}return{init,loadImages};})();
 const FooterA11yModule=(function(){function init(){const b=document.getElementById('footerA11y');if(!b)return;b.addEventListener('click',()=>{const n=document.createElement('div');n.setAttribute('role','alert');n.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bark);color:#fff;padding:16px 24px;border-radius:8px;z-index:3000;max-width:90vw;box-shadow:0 10px 30px rgba(0,0,0,.2);font-size:14px;';n.innerHTML='Our full accessibility statement is available on request. Please call us on <strong>01435 863119</strong> or email <strong>services@tinkershatch.co.uk</strong> and we will send it to you in your preferred format.';document.body.appendChild(n);setTimeout(()=>{n.style.transition='opacity .4s ease';n.style.opacity='0';setTimeout(()=>n.remove(),400)},5000)})}return{init}})();
@@ -166,60 +131,15 @@ const FilmNightModule=(function(){
     let films=[];
     async function lf(){
         if(!supabaseClient)return;
-        const c=document.getElementById('filmListContainer'),
-              uc=document.getElementById('upcomingFilmsContainer'),
-              ac=document.getElementById('adminFilmContainer');
+        const c=document.getElementById('filmListContainer'), uc=document.getElementById('upcomingFilmsContainer'), ac=document.getElementById('adminFilmContainer');
         if(!c&&!ac)return;
         if(c)c.innerHTML='<p style="color: var(--bark-soft); text-align: center; grid-column: 1/-1;">Loading films...</p>';
         if(uc)uc.innerHTML='<p style="color: var(--bark-soft); text-align: center; grid-column: 1/-1;">Checking the schedule...</p>';
         if(ac)ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">Loading films...</p>';
-        try{
-            const{data,error}=await supabaseClient.from('Filmnight').select('*').order('created_at',{ascending:true});
-            if(error)throw error;
-            films=data||[];
-            rf();
-            raf();
-        }catch(err){
-            if(c)c.innerHTML='<p style="color: var(--terracotta); text-align: center; grid-column: 1/-1;">Error loading films.</p>';
-            if(uc)uc.innerHTML='<p style="color: var(--terracotta); text-align: center; grid-column: 1/-1;">Error loading films.</p>';
-            if(ac)ac.innerHTML='<p class="text-sm" style="color: var(--terracotta);">Error loading films.</p>';
-            console.error('Film load error:',err);
-        }
+        try{const{data,error}=await supabaseClient.from('Filmnight').select('*').order('created_at',{ascending:true});if(error)throw error;films=data||[];rf();raf();}catch(err){if(c)c.innerHTML='<p style="color: var(--terracotta); text-align: center; grid-column: 1/-1;">Error loading films.</p>';if(uc)uc.innerHTML='<p style="color: var(--terracotta); text-align: center; grid-column: 1/-1;">Error loading films.</p>';if(ac)ac.innerHTML='<p class="text-sm" style="color: var(--terracotta);">Error loading films.</p>';console.error('Film load error:',err);}
     }
-    function rf(){
-        const c=document.getElementById('filmListContainer');
-        const uc=document.getElementById('upcomingFilmsContainer');
-        if(!c&&!uc)return;
-        const upcoming=films.filter(f=>!f.watched);
-        const reviewed=films.filter(f=>f.watched);
-        if(uc){
-            if(upcoming.length===0){
-                uc.innerHTML='<p style="color: var(--bark-soft); text-align: center; grid-column: 1/-1;">No films scheduled yet. Check back soon!</p>';
-            }else{
-                uc.innerHTML=upcoming.map(f=>`<div class="card p-6 flex flex-col items-center text-center"><div class="w-12 h-12 rounded-full flex items-center justify-center mb-4" style="background:var(--cream)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="2"><path d="M5 4l14 8-14 8V4z"/></svg></div><h5 class="display font-extrabold text-lg mb-2" style="color:var(--bark)">${f.title}</h5><p class="text-sm" style="color:var(--bark-soft);">Coming soon to Film Night!</p></div>`).join('');
-            }
-        }
-        if(c){
-            if(reviewed.length===0){
-                c.innerHTML='<p style="color: var(--bark-soft); text-align: center; grid-column: 1/-1;">No reviews just yet. Check back after our next film night!</p>';
-            }else{
-                c.innerHTML=reviewed.map(f=>`<div class="card p-6 flex flex-col"><div class="flex justify-between items-start mb-2"><h5 class="display font-extrabold text-lg" style="color:var(--bark)">${f.title}</h5>${f.is_staff_favourite?`<span class="staff-fav" title="Staff Favourite" style="color: var(--honey); font-size: 1.2rem;">★</span>`:''}</div>${f.review?`<p class="text-sm mb-4" style="color:var(--bark-soft); font-style: italic; border-left: 3px solid var(--teal); padding-left: 10px;">"${f.review}"</p>`:`<p class="text-sm mb-4" style="color:var(--bark-soft);">No review yet.</p>`}</div>`).join('');
-            }
-        }
-    }
-    function raf(){
-        const c=document.getElementById('adminFilmContainer');
-        if(!c)return;
-        if(films.length===0){
-            c.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No films found. Add one above!</p>';
-            return;
-        }
-        c.innerHTML=films.map(f=>`<div class="admin-film-item"><h6><span>${f.title} ${f.watched?'<span style="font-size:0.7rem; color:var(--sage);">(Watched)</span>':'<span style="font-size:0.7rem; color:var(--terracotta);">(Upcoming)</span>'}</span><div class="flex gap-2"><button class="tester-btn" data-fav-id="${f.id}" style="width: auto; margin: 0; padding: 6px 12px; font-size: 0.8rem; background: ${f.is_staff_favourite?'var(--honey)':'var(--cream)'}; color: ${f.is_staff_favourite?'#000':'var(--bark)'}; border: 1px solid ${f.is_staff_favourite?'var(--honey)':'var(--border)'};">${f.is_staff_favourite?'★ Fav':'Mark Fav'}</button><button class="tester-btn" data-action="toggle-watched" data-id="${f.id}" style="width: auto; margin: 0; padding: 6px 12px; font-size: 0.8rem; background: var(--teal); color: #fff;">${f.watched?'✓ Unwatch':'Mark Watched'}</button><button class="tester-btn" data-del-id="${f.id}" style="width: auto; margin: 0; padding: 6px 12px; font-size: 0.8rem; background: var(--terracotta); color: #fff; border: 1px solid var(--terracotta);">Delete</button></div></h6><textarea class="film-review" placeholder="Write a review..." data-action="save-review" data-id="${f.id}">${f.review||''}</textarea></div>`).join('');
-        c.querySelectorAll('[data-fav-id]').forEach(b=>b.addEventListener('click',async e=>{const id=e.target.dataset.favId,f=films.find(x=>x.id==id);if(!f)return;try{await supabaseClient.from('Filmnight').update({is_staff_favourite:!f.is_staff_favourite}).eq('id',id);lf();}catch(err){ToastModule.show('Error updating favourite.');}}));
-        c.querySelectorAll('[data-action="toggle-watched"]').forEach(b=>b.addEventListener('click',async e=>{tw(e.target.dataset.id);}));
-        c.querySelectorAll('[data-del-id]').forEach(b=>b.addEventListener('click',async e=>{const id=e.target.dataset.delId;if(confirm('Are you sure you want to delete this film?'))df(id);}));
-        c.querySelectorAll('[data-action="save-review"]').forEach(t=>t.addEventListener('blur',e=>sr(e.target.dataset.id,e.target.value)));
-    }
+    function rf(){const c=document.getElementById('filmListContainer');const uc=document.getElementById('upcomingFilmsContainer');if(!c&&!uc)return;const upcoming=films.filter(f=>!f.watched);const reviewed=films.filter(f=>f.watched);if(uc){if(upcoming.length===0){uc.innerHTML='<p style="color: var(--bark-soft); text-align: center; grid-column: 1/-1;">No films scheduled yet. Check back soon!</p>';}else{uc.innerHTML=upcoming.map(f=>`<div class="card p-6 flex flex-col items-center text-center"><div class="w-12 h-12 rounded-full flex items-center justify-center mb-4" style="background:var(--cream)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--terracotta)" stroke-width="2"><path d="M5 4l14 8-14 8V4z"/></svg></div><h5 class="display font-extrabold text-lg mb-2" style="color:var(--bark)">${f.title}</h5><p class="text-sm" style="color:var(--bark-soft);">Coming soon to Film Night!</p></div>`).join('');}}if(c){if(reviewed.length===0){c.innerHTML='<p style="color: var(--bark-soft); text-align: center; grid-column: 1/-1;">No reviews just yet. Check back after our next film night!</p>';}else{c.innerHTML=reviewed.map(f=>`<div class="card p-6 flex flex-col"><div class="flex justify-between items-start mb-2"><h5 class="display font-extrabold text-lg" style="color:var(--bark)">${f.title}</h5>${f.is_staff_favourite?`<span class="staff-fav" title="Staff Favourite" style="color: var(--honey); font-size: 1.2rem;">★</span>`:''}</div>${f.review?`<p class="text-sm mb-4" style="color:var(--bark-soft); font-style: italic; border-left: 3px solid var(--teal); padding-left: 10px;">"${f.review}"</p>`:`<p class="text-sm mb-4" style="color:var(--bark-soft);">No review yet.</p>`}</div>`).join('');}}}
+    function raf(){const c=document.getElementById('adminFilmContainer');if(!c)return;if(films.length===0){c.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No films found. Add one above!</p>';return;}c.innerHTML=films.map(f=>`<div class="admin-film-item"><h6><span>${f.title} ${f.watched?'<span style="font-size:0.7rem; color:var(--sage);">(Watched)</span>':'<span style="font-size:0.7rem; color:var(--terracotta);">(Upcoming)</span>'}</span><div class="flex gap-2"><button class="tester-btn" data-fav-id="${f.id}" style="width: auto; margin: 0; padding: 6px 12px; font-size: 0.8rem; background: ${f.is_staff_favourite?'var(--honey)':'var(--cream)'}; color: ${f.is_staff_favourite?'#000':'var(--bark)'}; border: 1px solid ${f.is_staff_favourite?'var(--honey)':'var(--border)'};">${f.is_staff_favourite?'★ Fav':'Mark Fav'}</button><button class="tester-btn" data-action="toggle-watched" data-id="${f.id}" style="width: auto; margin: 0; padding: 6px 12px; font-size: 0.8rem; background: var(--teal); color: #fff;">${f.watched?'✓ Unwatch':'Mark Watched'}</button><button class="tester-btn" data-del-id="${f.id}" style="width: auto; margin: 0; padding: 6px 12px; font-size: 0.8rem; background: var(--terracotta); color: #fff; border: 1px solid var(--terracotta);">Delete</button></div></h6><textarea class="film-review" placeholder="Write a review..." data-action="save-review" data-id="${f.id}">${f.review||''}</textarea></div>`).join('');c.querySelectorAll('[data-fav-id]').forEach(b=>b.addEventListener('click',async e=>{const id=e.target.dataset.favId,f=films.find(x=>x.id==id);if(!f)return;try{await supabaseClient.from('Filmnight').update({is_staff_favourite:!f.is_staff_favourite}).eq('id',id);lf();}catch(err){ToastModule.show('Error updating favourite.');}}));c.querySelectorAll('[data-action="toggle-watched"]').forEach(b=>b.addEventListener('click',async e=>{tw(e.target.dataset.id);}));c.querySelectorAll('[data-del-id]').forEach(b=>b.addEventListener('click',async e=>{const id=e.target.dataset.delId;if(confirm('Are you sure you want to delete this film?'))df(id);}));c.querySelectorAll('[data-action="save-review"]').forEach(t=>t.addEventListener('blur',e=>sr(e.target.dataset.id,e.target.value)));}
     async function tw(id){const f=films.find(x=>x.id==id);if(!f)return;const ns=!f.watched;try{const{error}=await supabaseClient.from('Filmnight').update({watched:ns}).eq('id',id);if(error)throw error;f.watched=ns;rf();raf();}catch(err){ToastModule.show('Error updating status.');}}
     async function sr(id,review){try{const{error}=await supabaseClient.from('Filmnight').update({review:review}).eq('id',id);if(error)throw error;const f=films.find(x=>x.id==id);if(f)f.review=review;rf();ToastModule.show('Review saved!');}catch(err){ToastModule.show('Error saving review.');}}
     async function af(title){try{const{data,error}=await supabaseClient.from('Filmnight').insert([{title:title,watched:false,review:'',is_staff_favourite:false}]).select();if(error)throw error;if(data&&data.length>0){films.push(data[0]);rf();raf();ToastModule.show('Film added!');}}catch(err){console.error('Add film error details:',err);ToastModule.show('Error adding film.');}}
@@ -232,469 +152,65 @@ const SummerEffectsModule=(function(){function init(){const c=document.getElemen
 
 const EventsModule=(function(){
     async function loadEvents(){
-        const c=document.getElementById('eventsContainer');
-        const printBtn=document.getElementById('printScheduleBtn');
-        const printContainer=document.getElementById('printableSchedule');
-        const badge=document.getElementById('eventsFreshnessBadge');
-        if(!c||!supabaseClient)return;
-        c.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">Checking for upcoming events...</p>';
-        try{
-            let now=new Date().toISOString();
-            const{data,error}=await supabaseClient.from('events').select('*').gte('event_date',now.split('T')[0]).order('event_date',{ascending:true});
-            if(error)throw error;
-            if(!data||data.length===0){
-                c.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">No upcoming events scheduled right now. Please check back soon!</p>';
-                if(printBtn)printBtn.style.display='none';
-                if(badge)badge.style.display='none';
-                return;
-            }
-            if(badge){
-                const latest=data.reduce((a,b)=>new Date(a.updated_at)>new Date(b.updated_at)?a:b);
-                if(latest&&latest.updated_at){badge.innerHTML=`Updated ${timeAgo(latest.updated_at)}`;badge.style.display='inline-flex';}
-            }
-            if(printBtn)printBtn.style.display='inline-flex';
-            const today=new Date();
-            today.setHours(0,0,0,0);
-            c.innerHTML=data.slice(0,3).map(ev=>{
-                const d=new Date(ev.event_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-                const evDate=new Date(ev.event_date);
-                evDate.setHours(0,0,0,0);
-                const isToday=today.getTime()===evDate.getTime();
-                const todayBadge=isToday?`<div class="tag mb-3" style="background: var(--terracotta); color: #fff; border-color: var(--terracotta); align-self: flex-start;">🔥 Happening Today!</div>`:'';
-                const cardStyle=isToday?`border-color: var(--terracotta);`:'';
-                return `<div class="card p-6 flex flex-col" style="${cardStyle}">${todayBadge}<div class="display font-extrabold text-lg mb-2" style="color:var(--teal)">${ev.title}</div><div class="text-sm font-bold mb-3" style="color:var(--bark-soft)">${d}</div><p class="text-sm" style="color:var(--bark-soft)">${ev.description||''}</p></div>`;
-            }).join('');
-            if(printContainer){
-                printContainer.innerHTML=`<h1 style="font-family: 'Outfit', sans-serif; color: #152630; margin-bottom: 4px;">Tinkers Hatch</h1><h2 style="font-family: 'Outfit', sans-serif; color: #4A5C66; font-size: 1.2rem; margin-top: 0; margin-bottom: 24px;">Full Upcoming Events Schedule</h2><div style="display: flex; flex-direction: column; gap: 16px;">${data.map(ev=>{const d=new Date(ev.event_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});return `<div style="border: 1px solid #ccc; border-radius: 8px; padding: 16px; break-inside: avoid;"><div style="font-weight: 800; font-size: 1.1rem; color: #1AA37E; margin-bottom: 4px;">${ev.title}</div><div style="font-weight: 700; font-size: 0.9rem; color: #4A5C66; margin-bottom: 8px;">${d}</div><div style="font-size: 0.95rem; color: #152630;">${ev.description||'No additional details.'}</div></div>`;}).join('')}</div><p style="margin-top: 32px; font-size: 0.8rem; color: #999; text-align: center;">Generated from tinkershatch.co.uk on ${new Date().toLocaleDateString('en-GB')}</p>`;
-            }
-        }catch(e){
-            c.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">Could not load events.</p>';
-            if(printBtn)printBtn.style.display='none';
-            if(badge)badge.style.display='none';
-        }
-    }
-    async function loadAdminEvents(){
-        const ac=document.getElementById('adminEventContainer');
-        if(!ac||!supabaseClient)return;
-        ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">Loading events...</p>';
-        try{
-            const{data,error}=await supabaseClient.from('events').select('*').order('event_date',{ascending:true});
-            if(error)throw error;
-            if(!data||data.length===0){ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No events found.</p>';return;}
-            ac.innerHTML=data.map(ev=>`<div class="admin-film-item" style="padding: 8px 12px;"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-size:.8rem;font-weight:700;flex:1;">${ev.title} (${new Date(ev.event_date).toLocaleDateString('en-GB')})</span><button class="tester-btn del-event-btn" data-id="${ev.id}" style="width:auto;margin:0;padding:4px 8px;font-size:0.7rem;background:var(--terracotta);">Delete</button></div></div>`).join('');
-            ac.querySelectorAll('.del-event-btn').forEach(btn=>btn.addEventListener('click',async(e)=>{const id=e.target.dataset.id;try{await supabaseClient.from('events').delete().eq('id',id);ToastModule.show('Event deleted!');loadAdminEvents();loadEvents();}catch(err){ToastModule.show('Error deleting event.');}}));
-        }catch(e){ac.innerHTML='<p class="text-sm" style="color: var(--terracotta);">Error loading events.</p>';}
-    }
-    async function addEvent(){
-        const t=document.getElementById('newEventTitle').value.trim();
-        const d=document.getElementById('newEventDate').value;
-        const desc=document.getElementById('newEventDesc').value.trim();
-        if(!t||!d){ToastModule.show('Title and Date are required.');return;}
-        try{
-            const{error}=await supabaseClient.from('events').insert([{title:t,event_date:d,description:desc}]);
-            if(error)throw error;
-            ToastModule.show('Event added!');
-            fetch('https://ntfy.sh/tinkers-hatch-live',{method:'POST',body:`New Event Added: ${t} on ${d}`}).catch(()=>{});
-            document.getElementById('newEventTitle').value='';document.getElementById('newEventDate').value='';document.getElementById('newEventDesc').value='';
-            loadAdminEvents();loadEvents();
-        }catch(err){ToastModule.show('Error adding event.');}
-    }
-    function init(){
-        loadEvents();
-        const addBtn=document.getElementById('addEventBtn');
-        if(addBtn)addBtn.addEventListener('click',addEvent);
-        const printBtn=document.getElementById('printScheduleBtn');
-        if(printBtn)printBtn.addEventListener('click',()=>window.print());
-    }
+        const c=document.getElementById('eventsContainer');const printBtn=document.getElementById('printScheduleBtn');const printContainer=document.getElementById('printableSchedule');const badge=document.getElementById('eventsFreshnessBadge');
+        if(!c||!supabaseClient)return;c.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">Checking for upcoming events...</p>';
+        try{let now=new Date().toISOString();const{data,error}=await supabaseClient.from('events').select('*').gte('event_date',now.split('T')[0]).order('event_date',{ascending:true});if(error)throw error;if(!data||data.length===0){c.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">No upcoming events scheduled right now. Please check back soon!</p>';if(printBtn)printBtn.style.display='none';if(badge)badge.style.display='none';return;}if(badge){const latest=data.reduce((a,b)=>new Date(a.updated_at)>new Date(b.updated_at)?a:b);if(latest&&latest.updated_at){badge.innerHTML=`Updated ${timeAgo(latest.updated_at)}`;badge.style.display='inline-flex';}}if(printBtn)printBtn.style.display='inline-flex';const today=new Date();today.setHours(0,0,0,0);c.innerHTML=data.slice(0,3).map(ev=>{const d=new Date(ev.event_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});const evDate=new Date(ev.event_date);evDate.setHours(0,0,0,0);const isToday=today.getTime()===evDate.getTime();const todayBadge=isToday?`<div class="tag mb-3" style="background: var(--terracotta); color: #fff; border-color: var(--terracotta); align-self: flex-start;">🔥 Happening Today!</div>`:'';const cardStyle=isToday?`border-color: var(--terracotta);`:'';return `<div class="card p-6 flex flex-col" style="${cardStyle}">${todayBadge}<div class="display font-extrabold text-lg mb-2" style="color:var(--teal)">${ev.title}</div><div class="text-sm font-bold mb-3" style="color:var(--bark-soft)">${d}</div><p class="text-sm" style="color:var(--bark-soft)">${ev.description||''}</p></div>`;}).join('');if(printContainer){printContainer.innerHTML=`<h1 style="font-family: 'Outfit', sans-serif; color: #152630; margin-bottom: 4px;">Tinkers Hatch</h1><h2 style="font-family: 'Outfit', sans-serif; color: #4A5C66; font-size: 1.2rem; margin-top: 0; margin-bottom: 24px;">Full Upcoming Events Schedule</h2><div style="display: flex; flex-direction: column; gap: 16px;">${data.map(ev=>{const d=new Date(ev.event_date).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});return `<div style="border: 1px solid #ccc; border-radius: 8px; padding: 16px; break-inside: avoid;"><div style="font-weight: 800; font-size: 1.1rem; color: #1AA37E; margin-bottom: 4px;">${ev.title}</div><div style="font-weight: 700; font-size: 0.9rem; color: #4A5C66; margin-bottom: 8px;">${d}</div><div style="font-size: 0.95rem; color: #152630;">${ev.description||'No additional details.'}</div></div>`;}).join('')}</div><p style="margin-top: 32px; font-size: 0.8rem; color: #999; text-align: center;">Generated from tinkershatch.co.uk on ${new Date().toLocaleDateString('en-GB')}</p>`;}}catch(e){c.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">Could not load events.</p>';if(printBtn)printBtn.style.display='none';if(badge)badge.style.display='none';}}
+    async function loadAdminEvents(){const ac=document.getElementById('adminEventContainer');if(!ac||!supabaseClient)return;ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">Loading events...</p>';try{const{data,error}=await supabaseClient.from('events').select('*').order('event_date',{ascending:true});if(error)throw error;if(!data||data.length===0){ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No events found.</p>';return;}ac.innerHTML=data.map(ev=>`<div class="admin-film-item" style="padding: 8px 12px;"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-size:.8rem;font-weight:700;flex:1;">${ev.title} (${new Date(ev.event_date).toLocaleDateString('en-GB')})</span><button class="tester-btn del-event-btn" data-id="${ev.id}" style="width:auto;margin:0;padding:4px 8px;font-size:0.7rem;background:var(--terracotta);">Delete</button></div></div>`).join('');ac.querySelectorAll('.del-event-btn').forEach(btn=>btn.addEventListener('click',async(e)=>{const id=e.target.dataset.id;try{await supabaseClient.from('events').delete().eq('id',id);ToastModule.show('Event deleted!');loadAdminEvents();loadEvents();}catch(err){ToastModule.show('Error deleting event.');}}));}catch(e){ac.innerHTML='<p class="text-sm" style="color: var(--terracotta);">Error loading events.</p>';}}
+    async function addEvent(){const t=document.getElementById('newEventTitle').value.trim();const d=document.getElementById('newEventDate').value;const desc=document.getElementById('newEventDesc').value.trim();if(!t||!d){ToastModule.show('Title and Date are required.');return;}try{const{error}=await supabaseClient.from('events').insert([{title:t,event_date:d,description:desc}]);if(error)throw error;ToastModule.show('Event added!');fetch('https://ntfy.sh/tinkers-hatch-live',{method:'POST',body:`New Event Added: ${t} on ${d}`}).catch(()=>{});document.getElementById('newEventTitle').value='';document.getElementById('newEventDate').value='';document.getElementById('newEventDesc').value='';loadAdminEvents();loadEvents();}catch(err){ToastModule.show('Error adding event.');}}
+    function init(){loadEvents();const addBtn=document.getElementById('addEventBtn');if(addBtn)addBtn.addEventListener('click',addEvent);const printBtn=document.getElementById('printScheduleBtn');if(printBtn)printBtn.addEventListener('click',()=>window.print());}
     return{init,loadAdminEvents,loadEvents};
 })();
 
 const WilfModule=(function(){async function loadStatus(){const badge=document.getElementById('wilfStatusBadge');if(!badge||!supabaseClient)return;try{const{data,error}=await supabaseClient.from('wilf_status').select('is_visiting').eq('id',1).single();if(error)throw error;if(data&&data.is_visiting){badge.style.display='inline-flex';badge.style.background='var(--sage)';badge.style.color='#fff';badge.innerHTML='🐕 Wilf is visiting today!';}else{badge.style.display='inline-flex';badge.style.background='var(--cream-deep)';badge.style.color='var(--bark-soft)';badge.innerHTML='🐕 Wilf is currently off-site.';}}catch(e){}}async function toggleStatus(){if(!supabaseClient)return;try{const{data,error}=await supabaseClient.from('wilf_status').select('is_visiting').eq('id',1).single();if(error)throw error;const newStatus=!data.is_visiting;const{error:updateError}=await supabaseClient.from('wilf_status').update({is_visiting:newStatus}).eq('id',1);if(updateError)throw updateError;ToastModule.show(`Wilf status updated to: ${newStatus?'Visiting':'Off-site'}`);loadStatus();}catch(err){ToastModule.show('Error updating Wilf status.');}}function init(){loadStatus();const toggleBtn=document.getElementById('wilfToggleBtn');if(toggleBtn)toggleBtn.addEventListener('click',toggleStatus);}return{init,loadStatus};})();
 const MenuModule=(function(){
-    async function loadMenu(){
-        const c=document.getElementById('menuContainer');
-        const badge=document.getElementById('menuFreshnessBadge');
-        if(!c||!supabaseClient) return;
-        try{
-            const{data,error}=await supabaseClient.from('weekly_menu').select('*').order('id',{ascending:true});
-            if(error) throw error;
-            if(!data||data.length===0){ c.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">Menu is being updated. Please check back soon!</p>'; return; }
-            if(badge){
-                const latest=data.reduce((a,b)=>new Date(a.updated_at)>new Date(b.updated_at)?a:b);
-                if(latest&&latest.updated_at){ badge.innerHTML=`Updated ${timeAgo(latest.updated_at)}`; badge.style.display='inline-flex'; }
-            }
-            c.innerHTML=data.map(day=>{
-                const meal=day.meal_text&&day.meal_text.trim()!==''?day.meal_text:'To be announced';
-                const isPlaceholder=!day.meal_text||day.meal_text.trim()==='';
-                return `<div class="card p-6 flex flex-col"><div class="display font-extrabold text-lg mb-2" style="color:var(--terracotta)">${day.day_name}</div><p class="text-sm" style="color:var(--bark-soft); ${isPlaceholder?'font-style: italic; opacity: 0.7;':''}">${meal}</p></div>`;
-            }).join('');
-        }catch(e){ c.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">Could not load the menu.</p>'; }
-    }
-    async function loadAdminMenu(){
-        const ac=document.getElementById('adminMenuContainer');
-        if(!ac||!supabaseClient) return;
-        ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">Loading menu...</p>';
-        try{
-            const{data,error}=await supabaseClient.from('weekly_menu').select('*').order('id',{ascending:true});
-            if(error) throw error;
-            if(!data||data.length===0){ ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No menu days found.</p>'; return; }
-            ac.innerHTML=data.map(day=>`<div class="admin-film-item" style="padding: 8px 12px;"><label style="font-size:.8rem; font-weight:700; color:var(--bark); display:block; margin-bottom:4px;">${day.day_name}</label><input type="text" class="tester-input menu-input" data-id="${day.id}" value="${day.meal_text||''}" placeholder="e.g., Roast chicken with seasonal veg" style="margin-top:0; padding:8px; font-size:.9rem;"></div>`).join('');
-        }catch(e){ ac.innerHTML='<p class="text-sm" style="color: var(--terracotta);">Error loading menu.</p>'; }
-    }
-    async function saveMenu(){
-        const inputs=document.querySelectorAll('.menu-input');
-        if(inputs.length===0) return;
-        ToastModule.show("Saving menu...");
-        try{
-            for(let i=0;i<inputs.length;i++){
-                const id=inputs[i].dataset.id;
-                const val=inputs[i].value.trim();
-                const{error}=await supabaseClient.from('weekly_menu').update({meal_text:val}).eq('id',id);
-                if(error) throw error;
-            }
-            ToastModule.show("Weekly menu saved successfully!");
-            loadAdminMenu();
-            loadMenu();
-        }catch(err){ ToastModule.show("Error saving menu."); }
-    }
-    function init(){
-        loadMenu();
-        const saveBtn=document.getElementById('saveMenuBtn');
-        if(saveBtn) saveBtn.addEventListener('click',saveMenu);
-    }
+    async function loadMenu(){const c=document.getElementById('menuContainer');const badge=document.getElementById('menuFreshnessBadge');if(!c||!supabaseClient) return;try{const{data,error}=await supabaseClient.from('weekly_menu').select('*').order('id',{ascending:true});if(error) throw error;if(!data||data.length===0){ c.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">Menu is being updated. Please check back soon!</p>'; return; }if(badge){const latest=data.reduce((a,b)=>new Date(a.updated_at)>new Date(b.updated_at)?a:b);if(latest&&latest.updated_at){ badge.innerHTML=`Updated ${timeAgo(latest.updated_at)}`; badge.style.display='inline-flex'; }}c.innerHTML=data.map(day=>{const meal=day.meal_text&&day.meal_text.trim()!==''?day.meal_text:'To be announced';const isPlaceholder=!day.meal_text||day.meal_text.trim()==='';return `<div class="card p-6 flex flex-col"><div class="display font-extrabold text-lg mb-2" style="color:var(--terracotta)">${day.day_name}</div><p class="text-sm" style="color:var(--bark-soft); ${isPlaceholder?'font-style: italic; opacity: 0.7;':''}">${meal}</p></div>`;}).join('');}catch(e){ c.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">Could not load the menu.</p>'; }}
+    async function loadAdminMenu(){const ac=document.getElementById('adminMenuContainer');if(!ac||!supabaseClient) return;ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">Loading menu...</p>';try{const{data,error}=await supabaseClient.from('weekly_menu').select('*').order('id',{ascending:true});if(error) throw error;if(!data||data.length===0){ ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No menu days found.</p>'; return; }ac.innerHTML=data.map(day=>`<div class="admin-film-item" style="padding: 8px 12px;"><label style="font-size:.8rem; font-weight:700; color:var(--bark); display:block; margin-bottom:4px;">${day.day_name}</label><input type="text" class="tester-input menu-input" data-id="${day.id}" value="${day.meal_text||''}" placeholder="e.g., Roast chicken with seasonal veg" style="margin-top:0; padding:8px; font-size:.9rem;"></div>`).join('');}catch(e){ ac.innerHTML='<p class="text-sm" style="color: var(--terracotta);">Error loading menu.</p>'; }}
+    async function saveMenu(){const inputs=document.querySelectorAll('.menu-input');if(inputs.length===0) return;ToastModule.show("Saving menu...");try{for(let i=0;i<inputs.length;i++){const id=inputs[i].dataset.id;const val=inputs[i].value.trim();const{error}=await supabaseClient.from('weekly_menu').update({meal_text:val}).eq('id',id);if(error) throw error;}ToastModule.show("Weekly menu saved successfully!");loadAdminMenu();loadMenu();}catch(err){ ToastModule.show("Error saving menu."); }}
+    function init(){loadMenu();const saveBtn=document.getElementById('saveMenuBtn');if(saveBtn) saveBtn.addEventListener('click',saveMenu);}
     return{init,loadAdminMenu};
 })();
 
 const CommunityModule=(function(){
-    async function loadCommunity(){
-        const c=document.getElementById('communityContainer');
-        if(!c||!supabaseClient) return;
-        c.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">Loading community moments...</p>';
-        try{
-            const{data,error}=await supabaseClient.from('community_spotlight').select('*').order('created_at',{ascending:false}).limit(6);
-            if(error) throw error;
-            if(!data||data.length===0){ c.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">No community updates just yet. Check back soon!</p>'; return; }
-            c.innerHTML=data.map(post=>{
-                const d=new Date(post.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-                const imgHtml=post.image_url?`<div style="height: 200px; background-image: url('${post.image_url}'); background-size: cover; background-position: center; border-radius: 8px; margin-bottom: 12px;"></div>`:'';
-                return `<div class="card p-6 flex flex-col">${imgHtml}<div class="display font-extrabold text-lg mb-1" style="color:var(--teal)">${post.title}</div><div class="text-xs font-bold mb-3" style="color:var(--bark-soft)">${d}</div><p class="text-sm" style="color:var(--bark-soft); line-height: 1.6;">${post.description}</p></div>`;
-            }).join('');
-        }catch(e){ c.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">Could not load community updates.</p>'; }
-    }
-    async function loadAdminCommunity(){
-        const ac=document.getElementById('adminCommunityContainer');
-        if(!ac||!supabaseClient) return;
-        ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">Loading...</p>';
-        try{
-            const{data,error}=await supabaseClient.from('community_spotlight').select('*').order('created_at',{ascending:false});
-            if(error) throw error;
-            if(!data||data.length===0){ ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No posts found.</p>'; return; }
-            ac.innerHTML=data.map(post=>`<div class="admin-film-item" style="padding: 8px 12px;"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-size:.8rem;font-weight:700;flex:1;">${post.title}</span><button class="tester-btn del-community-btn" data-id="${post.id}" style="width:auto;margin:0;padding:4px 8px;font-size:0.7rem;background:var(--terracotta);">Delete</button></div></div>`).join('');
-            ac.querySelectorAll('.del-community-btn').forEach(btn=>btn.addEventListener('click',async(e)=>{
-                const id=e.target.dataset.id;
-                try{ await supabaseClient.from('community_spotlight').delete().eq('id',id); ToastModule.show('Spotlight deleted!'); loadAdminCommunity(); loadCommunity(); }catch(err){ ToastModule.show('Error deleting post.'); }
-            }));
-        }catch(e){ ac.innerHTML='<p class="text-sm" style="color: var(--terracotta);">Error loading posts.</p>'; }
-    }
-    async function addCommunity(){
-        const t=document.getElementById('newCommunityTitle').value.trim();
-        const d=document.getElementById('newCommunityDesc').value.trim();
-        const img=document.getElementById('newCommunityImg').value.trim();
-        if(!t||!d){ ToastModule.show('Title and Description are required.'); return; }
-        try{
-            const{error}=await supabaseClient.from('community_spotlight').insert([{title:t,description:d,image_url:img}]);
-            if(error) throw error;
-            ToastModule.show('Community spotlight posted!');
-            document.getElementById('newCommunityTitle').value=''; document.getElementById('newCommunityDesc').value=''; document.getElementById('newCommunityImg').value='';
-            loadAdminCommunity(); loadCommunity();
-        }catch(err){ ToastModule.show('Error adding post.'); }
-    }
-    function init(){
-        loadCommunity();
-        const addBtn=document.getElementById('addCommunityBtn');
-        if(addBtn) addBtn.addEventListener('click',addCommunity);
-    }
+    async function loadCommunity(){const c=document.getElementById('communityContainer');if(!c||!supabaseClient) return;c.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">Loading community moments...</p>';try{const{data,error}=await supabaseClient.from('community_spotlight').select('*').order('created_at',{ascending:false}).limit(6);if(error) throw error;if(!data||data.length===0){ c.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">No community updates just yet. Check back soon!</p>'; return; }c.innerHTML=data.map(post=>{const d=new Date(post.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});const imgHtml=post.image_url?`<div style="height: 200px; background-image: url('${post.image_url}'); background-size: cover; background-position: center; border-radius: 8px; margin-bottom: 12px;"></div>`:'';return `<div class="card p-6 flex flex-col">${imgHtml}<div class="display font-extrabold text-lg mb-1" style="color:var(--teal)">${post.title}</div><div class="text-xs font-bold mb-3" style="color:var(--bark-soft)">${d}</div><p class="text-sm" style="color:var(--bark-soft); line-height: 1.6;">${post.description}</p></div>`;}).join('');}catch(e){ c.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">Could not load community updates.</p>'; }}
+    async function loadAdminCommunity(){const ac=document.getElementById('adminCommunityContainer');if(!ac||!supabaseClient) return;ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">Loading...</p>';try{const{data,error}=await supabaseClient.from('community_spotlight').select('*').order('created_at',{ascending:false});if(error) throw error;if(!data||data.length===0){ ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No posts found.</p>'; return; }ac.innerHTML=data.map(post=>`<div class="admin-film-item" style="padding: 8px 12px;"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-size:.8rem;font-weight:700;flex:1;">${post.title}</span><button class="tester-btn del-community-btn" data-id="${post.id}" style="width:auto;margin:0;padding:4px 8px;font-size:0.7rem;background:var(--terracotta);">Delete</button></div></div>`).join('');ac.querySelectorAll('.del-community-btn').forEach(btn=>btn.addEventListener('click',async(e)=>{const id=e.target.dataset.id;try{ await supabaseClient.from('community_spotlight').delete().eq('id',id); ToastModule.show('Spotlight deleted!'); loadAdminCommunity(); loadCommunity(); }catch(err){ ToastModule.show('Error deleting post.'); }}));}catch(e){ ac.innerHTML='<p class="text-sm" style="color: var(--terracotta);">Error loading posts.</p>'; }}
+    async function addCommunity(){const t=document.getElementById('newCommunityTitle').value.trim();const d=document.getElementById('newCommunityDesc').value.trim();const img=document.getElementById('newCommunityImg').value.trim();if(!t||!d){ ToastModule.show('Title and Description are required.'); return; }try{const{error}=await supabaseClient.from('community_spotlight').insert([{title:t,description:d,image_url:img}]);if(error) throw error;ToastModule.show('Community spotlight posted!');document.getElementById('newCommunityTitle').value=''; document.getElementById('newCommunityDesc').value=''; document.getElementById('newCommunityImg').value='';loadAdminCommunity(); loadCommunity();}catch(err){ ToastModule.show('Error adding post.'); }}
+    function init(){loadCommunity();const addBtn=document.getElementById('addCommunityBtn');if(addBtn) addBtn.addEventListener('click',addCommunity);}
     return{init,loadAdminCommunity};
 })();
 
 const EnquiriesModule=(function(){
-    async function submitEnquiry(name,email,message){
-        try{
-            const{error}=await supabaseClient.from('enquiries').insert([{name:name,email:email,message:message}]);
-            if(error) throw error;
-            ToastModule.show("Enquiry sent successfully! We'll be in touch soon.");
-            return true;
-        }catch(err){ ToastModule.show("Error sending enquiry. Please try calling us instead."); return false; }
-    }
-    async function loadAdminEnquiries(){
-        const ac=document.getElementById('adminEnquiriesContainer');
-        if(!ac||!supabaseClient) return;
-        ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">Loading enquiries...</p>';
-        try{
-            const{data,error}=await supabaseClient.from('enquiries').select('*').order('created_at',{ascending:false});
-            if(error) throw error;
-            if(!data||data.length===0){ ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No new enquiries.</p>'; return; }
-            ac.innerHTML=data.map(enq=>{
-                const d=new Date(enq.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
-                return `<div class="admin-film-item" style="padding: 12px;"><div style="display:flex; justify-content:space-between; align-items:start; gap:8px; margin-bottom:6px;"><div><span style="font-weight:700; font-size:.9rem;">${enq.name}</span><span style="font-size:.75rem; color:var(--bark-soft); margin-left:8px;">${d}</span></div><button class="tester-btn del-enq-btn" data-id="${enq.id}" style="width:auto; margin:0; padding:4px 8px; font-size:0.7rem; background:var(--terracotta);">Delete</button></div><a href="mailto:${enq.email}" style="font-size:.85rem; color:var(--teal); font-weight:600; display:block; margin-bottom:6px;">${enq.email}</a><p style="font-size:.85rem; color:var(--bark-soft); line-height:1.4;">${enq.message}</p></div>`;
-            }).join('');
-            ac.querySelectorAll('.del-enq-btn').forEach(btn=>btn.addEventListener('click',async(e)=>{
-                const id=e.target.dataset.id;
-                try{ await supabaseClient.from('enquiries').delete().eq('id',id); ToastModule.show('Enquiry deleted!'); loadAdminEnquiries(); }catch(err){ ToastModule.show('Error deleting enquiry.'); }
-            }));
-        }catch(e){ ac.innerHTML='<p class="text-sm" style="color: var(--terracotta);">Error loading enquiries.</p>'; }
-    }
-    function init(){
-        const form=document.getElementById('contactForm');
-        if(form){
-            form.addEventListener('submit',async(e)=>{
-                e.preventDefault();
-                const name=document.getElementById('contactName').value.trim();
-                const email=document.getElementById('contactEmail').value.trim();
-                const message=document.getElementById('contactMessage').value.trim();
-                if(name&&email&&message){
-                    const success=await submitEnquiry(name,email,message);
-                    if(success){ form.reset(); }
-                }
-            });
-        }
-    }
+    async function submitEnquiry(name,email,message){try{const{error}=await supabaseClient.from('enquiries').insert([{name:name,email:email,message:message}]);if(error) throw error;ToastModule.show("Enquiry sent successfully! We'll be in touch soon.");return true;}catch(err){ ToastModule.show("Error sending enquiry. Please try calling us instead."); return false; }}
+    async function loadAdminEnquiries(){const ac=document.getElementById('adminEnquiriesContainer');if(!ac||!supabaseClient) return;ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">Loading enquiries...</p>';try{const{data,error}=await supabaseClient.from('enquiries').select('*').order('created_at',{ascending:false});if(error) throw error;if(!data||data.length===0){ ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No new enquiries.</p>'; return; }ac.innerHTML=data.map(enq=>{const d=new Date(enq.created_at).toLocaleString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});return `<div class="admin-film-item" style="padding: 12px;"><div style="display:flex; justify-content:space-between; align-items:start; gap:8px; margin-bottom:6px;"><div><span style="font-weight:700; font-size:.9rem;">${enq.name}</span><span style="font-size:.75rem; color:var(--bark-soft); margin-left:8px;">${d}</span></div><button class="tester-btn del-enq-btn" data-id="${enq.id}" style="width:auto; margin:0; padding:4px 8px; font-size:0.7rem; background:var(--terracotta);">Delete</button></div><a href="mailto:${enq.email}" style="font-size:.85rem; color:var(--teal); font-weight:600; display:block; margin-bottom:6px;">${enq.email}</a><p style="font-size:.85rem; color:var(--bark-soft); line-height:1.4;">${enq.message}</p></div>`;}).join('');ac.querySelectorAll('.del-enq-btn').forEach(btn=>btn.addEventListener('click',async(e)=>{const id=e.target.dataset.id;try{ await supabaseClient.from('enquiries').delete().eq('id',id); ToastModule.show('Enquiry deleted!'); loadAdminEnquiries(); }catch(err){ ToastModule.show('Error deleting enquiry.'); }}));}catch(e){ ac.innerHTML='<p class="text-sm" style="color: var(--terracotta);">Error loading enquiries.</p>'; }}
+    function init(){const form=document.getElementById('contactForm');if(form){form.addEventListener('submit',async(e)=>{e.preventDefault();const name=document.getElementById('contactName').value.trim();const email=document.getElementById('contactEmail').value.trim();const message=document.getElementById('contactMessage').value.trim();if(name&&email&&message){const success=await submitEnquiry(name,email,message);if(success){ form.reset(); }}});}}
     return{init,loadAdminEnquiries};
 })();
 
 const BriefingModule=(function(){
-    async function loadBriefing(){
-        const bar=document.getElementById('briefing-bar');
-        const textEl=document.getElementById('briefing-text');
-        const input=document.getElementById('briefingInput');
-        if(!bar||!supabaseClient) return;
-        try{
-            const{data,error}=await supabaseClient.from('daily_briefing').select('message').eq('id',1).single();
-            if(error) throw error;
-            if(data&&data.message&&data.message.trim()!==''){ textEl.textContent=data.message; bar.style.display='block'; if(input) input.value=data.message; } else { bar.style.display='none'; }
-        }catch(e){ bar.style.display='none'; }
-    }
-    async function saveBriefing(){
-        const input=document.getElementById('briefingInput');
-        if(!input||!supabaseClient) return;
-        const msg=input.value.trim();
-        try{
-            const{error}=await supabaseClient.from('daily_briefing').update({message:msg}).eq('id',1);
-            if(error) throw error;
-            ToastModule.show("Briefing updated!");
-            loadBriefing();
-        }catch(err){ ToastModule.show("Error saving briefing."); }
-    }
-    function init(){
-        loadBriefing();
-        const btn=document.getElementById('saveBriefingBtn');
-        if(btn) btn.addEventListener('click',saveBriefing);
-    }
+    async function loadBriefing(){const bar=document.getElementById('briefing-bar');const textEl=document.getElementById('briefing-text');const input=document.getElementById('briefingInput');if(!bar||!supabaseClient) return;try{const{data,error}=await supabaseClient.from('daily_briefing').select('message').eq('id',1).single();if(error) throw error;if(data&&data.message&&data.message.trim()!==''){ textEl.textContent=data.message; bar.style.display='block'; if(input) input.value=data.message; } else { bar.style.display='none'; }}catch(e){ bar.style.display='none'; }}
+    async function saveBriefing(){const input=document.getElementById('briefingInput');if(!input||!supabaseClient) return;const msg=input.value.trim();try{const{error}=await supabaseClient.from('daily_briefing').update({message:msg}).eq('id',1);if(error) throw error;ToastModule.show("Briefing updated!");loadBriefing();}catch(err){ ToastModule.show("Error saving briefing."); }}
+    function init(){loadBriefing();const btn=document.getElementById('saveBriefingBtn');if(btn) btn.addEventListener('click',saveBriefing);}
     return{init,loadBriefing};
 })();
 
 const MaintenanceModule=(function(){
-    async function checkStatus(){
-        const banner=document.getElementById('maintenance-banner');
-        if(!banner||!supabaseClient) return;
-        try{
-            const{data,error}=await supabaseClient.from('site_settings').select('maintenance_mode').eq('id',1).single();
-            if(error) throw error;
-            if(data&&data.maintenance_mode){ banner.style.display='block'; } else { banner.style.display='none'; }
-        }catch(e){}
-    }
-    async function toggle(){
-        try{
-            const{data,error}=await supabaseClient.from('site_settings').select('maintenance_mode').eq('id',1).single();
-            if(error) throw error;
-            const newStatus=!data.maintenance_mode;
-            const{error:updateError}=await supabaseClient.from('site_settings').update({maintenance_mode:newStatus}).eq('id',1);
-            if(updateError) throw updateError;
-            ToastModule.show(`Maintenance Mode is now ${newStatus?'ON':'OFF'}`);
-            checkStatus();
-        }catch(err){ ToastModule.show('Error toggling maintenance mode.'); }
-    }
-    function init(){
-        checkStatus();
-        const btn=document.getElementById('toggleMaintenanceBtn');
-        if(btn) btn.addEventListener('click',toggle);
-    }
+    async function checkStatus(){const banner=document.getElementById('maintenance-banner');if(!banner||!supabaseClient) return;try{const{data,error}=await supabaseClient.from('site_settings').select('maintenance_mode').eq('id',1).single();if(error) throw error;if(data&&data.maintenance_mode){ banner.style.display='block'; } else { banner.style.display='none'; }}catch(e){}}
+    async function toggle(){try{const{data,error}=await supabaseClient.from('site_settings').select('maintenance_mode').eq('id',1).single();if(error) throw error;const newStatus=!data.maintenance_mode;const{error:updateError}=await supabaseClient.from('site_settings').update({maintenance_mode:newStatus}).eq('id',1);if(updateError) throw updateError;ToastModule.show(`Maintenance Mode is now ${newStatus?'ON':'OFF'}`);checkStatus();}catch(err){ ToastModule.show('Error toggling maintenance mode.'); }}
+    function init(){checkStatus();const btn=document.getElementById('toggleMaintenanceBtn');if(btn) btn.addEventListener('click',toggle);}
     return{init};
 })();
 
 const FeaturedEventsModule = (function() {
     let editingId = null;
-
-    async function loadFeatured() {
-        const c = document.getElementById('featuredEventsContainer');
-        if (!c || !supabaseClient) return;
-        c.innerHTML = '<p style="color:var(--bark-soft);text-align:center;">Loading featured events...</p>';
-        try {
-            const { data, error } = await supabaseClient.from('featured_events').select('*').eq('is_active', true).order('id', { ascending: true });
-            if (error) throw error;
-            if (!data || data.length === 0) {
-                c.innerHTML = '<p style="color:var(--bark-soft);text-align:center;">No featured events right now. Check back soon!</p>';
-                return;
-            }
-            c.innerHTML = data.map(ev => {
-                const bgStyle = ev.color && ev.color.startsWith('#') 
-                    ? `linear-gradient(135deg, var(--honey), ${ev.color})` 
-                    : (ev.color || 'linear-gradient(135deg, #A87816, #C25528)');
-                return `
-                <div class="featured-banner" style="background: ${bgStyle};">
-                    <div class="icon-row">${ev.icon || '🎉'}</div>
-                    <span class="tag mb-4 inline-flex">Save the Date</span>
-                    <h2>${ev.title}</h2>
-                    ${ev.date_text ? `<p class="date">${ev.date_text}</p>` : ''}
-                    <p>${ev.description || ''}</p>
-                </div>`;
-            }).join('');
-        } catch (e) { c.innerHTML = '<p style="color:var(--bark-soft);text-align:center;">Could not load featured events.</p>'; }
-    }
-
-    async function loadAdminFeatured() {
-        const ac = document.getElementById('adminFeaturedContainer');
-        if (!ac || !supabaseClient) return;
-        ac.innerHTML = '<p class="text-sm" style="color: var(--bark-soft);">Loading...</p>';
-        try {
-            const { data, error } = await supabaseClient.from('featured_events').select('*').order('id', { ascending: false });
-            if (error) throw error;
-            if (!data || data.length === 0) { ac.innerHTML = '<p class="text-sm" style="color: var(--bark-soft);">No featured events found.</p>'; return; }
-            ac.innerHTML = data.map(ev => `
-                <div class="admin-film-item" style="padding: 8px 12px;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-                        <span style="font-size:.8rem;font-weight:700;flex:1;">${ev.icon} ${ev.title} ${ev.is_active ? '' : '(Hidden)'}</span>
-                        <div class="flex gap-2">
-                            <button class="tester-btn edit-featured-btn" data-id="${ev.id}" style="width:auto;margin:0;padding:4px 8px;font-size:0.7rem;background:var(--honey);color:#000;">Edit</button>
-                            <button class="tester-btn toggle-featured-btn" data-id="${ev.id}" data-active="${ev.is_active}" style="width:auto;margin:0;padding:4px 8px;font-size:0.7rem;background:${ev.is_active ? 'var(--sage)' : 'var(--bark-soft)'};">${ev.is_active ? 'Hide' : 'Show'}</button>
-                            <button class="tester-btn del-featured-btn" data-id="${ev.id}" style="width:auto;margin:0;padding:4px 8px;font-size:0.7rem;background:var(--terracotta);">Delete</button>
-                        </div>
-                    </div>
-                </div>`).join('');
-            
-            ac.querySelectorAll('.edit-featured-btn').forEach(btn => btn.addEventListener('click', async (e) => {
-                const id = e.target.dataset.id;
-                try {
-                    const { data: ev, error } = await supabaseClient.from('featured_events').select('*').eq('id', id).single();
-                    if (error) throw error;
-                    document.getElementById('newFeaturedTitle').value = ev.title;
-                    document.getElementById('newFeaturedDate').value = ev.date_text || '';
-                    document.getElementById('newFeaturedDesc').value = ev.description || '';
-                    const iconSelect = document.getElementById('newFeaturedIcon');
-                    Array.from(iconSelect.querySelectorAll('option[data-temp="true"]')).forEach(opt => opt.remove());
-                    let iconExists = Array.from(iconSelect.options).some(opt => opt.value === ev.icon);
-                    if (iconExists) { iconSelect.value = ev.icon; } 
-                    else if (ev.icon) {
-                        let opt = document.createElement('option');
-                        opt.value = ev.icon; opt.textContent = ev.icon + " (Current)"; opt.setAttribute('data-temp', 'true');
-                        iconSelect.prepend(opt); iconSelect.value = ev.icon;
-                    } else { iconSelect.value = '🎉'; }
-                    const colorSelect = document.getElementById('newFeaturedColor');
-                    if (ev.color && ev.color.startsWith('#')) { colorSelect.value = "linear-gradient(135deg, #A87816, #C25528)"; } 
-                    else { colorSelect.value = ev.color || "linear-gradient(135deg, #A87816, #C25528)"; }
-                    editingId = id;
-                    document.getElementById('addFeaturedBtn').textContent = 'Update Event';
-                    document.getElementById('cancelEditFeaturedBtn').style.display = 'inline-block';
-                    document.getElementById('newFeaturedTitle').scrollIntoView({ behavior: 'smooth', block: 'center' });
-                } catch (err) { ToastModule.show('Error fetching event details.'); }
-            }));
-            
-            ac.querySelectorAll('.toggle-featured-btn').forEach(btn => btn.addEventListener('click', async (e) => {
-                const id = e.target.dataset.id;
-                const newActive = e.target.dataset.active !== 'true';
-                try { await supabaseClient.from('featured_events').update({ is_active: newActive }).eq('id', id); ToastModule.show('Event updated!'); loadAdminFeatured(); loadFeatured(); } catch (err) { ToastModule.show('Error updating event.'); }
-            }));
-            ac.querySelectorAll('.del-featured-btn').forEach(btn => btn.addEventListener('click', async (e) => {
-                const id = e.target.dataset.id;
-                try { await supabaseClient.from('featured_events').delete().eq('id', id); ToastModule.show('Event deleted!'); if (editingId === id) cancelEdit(); loadAdminFeatured(); loadFeatured(); } catch (err) { ToastModule.show('Error deleting event.'); }
-            }));
-        } catch (e) { ac.innerHTML = '<p class="text-sm" style="color: var(--terracotta);">Error loading events.</p>'; }
-    }
-
-    function cancelEdit() {
-        editingId = null;
-        document.getElementById('newFeaturedTitle').value = '';
-        document.getElementById('newFeaturedDate').value = '';
-        document.getElementById('newFeaturedDesc').value = '';
-        const iconSelect = document.getElementById('newFeaturedIcon');
-        Array.from(iconSelect.querySelectorAll('option[data-temp="true"]')).forEach(opt => opt.remove());
-        iconSelect.value = '🎉';
-        document.getElementById('newFeaturedColor').value = 'linear-gradient(135deg, #A87816, #C25528)';
-        document.getElementById('addFeaturedBtn').textContent = 'Add Featured Event';
-        document.getElementById('cancelEditFeaturedBtn').style.display = 'none';
-    }
-
-    async function addFeatured() {
-        const title = document.getElementById('newFeaturedTitle').value.trim();
-        const date = document.getElementById('newFeaturedDate').value.trim();
-        const desc = document.getElementById('newFeaturedDesc').value.trim();
-        const icon = document.getElementById('newFeaturedIcon').value;
-        const color = document.getElementById('newFeaturedColor').value;
-        if (!title) { ToastModule.show('Title is required.'); return; }
-        try {
-            if (editingId) {
-                const { error } = await supabaseClient.from('featured_events').update({ title: title, date_text: date, description: desc, icon: icon, color: color }).eq('id', editingId);
-                if (error) throw error;
-                ToastModule.show('Featured event updated!');
-            } else {
-                const { error } = await supabaseClient.from('featured_events').insert([{ title: title, date_text: date, description: desc, icon: icon, color: color }]);
-                if (error) throw error;
-                ToastModule.show('Featured event added!');
-            }
-            cancelEdit(); loadAdminFeatured(); loadFeatured();
-        } catch (err) { ToastModule.show('Error saving event.'); }
-    }
-
-    async function printPosters() {
-        if (!supabaseClient) return;
-        ToastModule.show("Preparing A4 posters...");
-        try {
-            const { data, error } = await supabaseClient.from('featured_events').select('*').eq('is_active', true).order('id', { ascending: true });
-            if (error) throw error;
-            if (!data || data.length === 0) { ToastModule.show("No active events to print."); return; }
-            const printArea = document.getElementById('featuredPrintArea');
-            printArea.innerHTML = data.map(ev => {
-                let headerColor = '#C25528';
-                if (ev.color) {
-                    const match = ev.color.match(/#[A-F0-9]{6}/ig);
-                    if (match && match.length > 1) headerColor = match[1];
-                    else if (match && match.length > 0) headerColor = match[0];
-                }
-                return `
-                <div class="fp-poster">
-                    <div class="fp-brand">Tinkers Hatch</div>
-                    <div class="fp-header" style="color: ${headerColor};">${ev.icon || '🎉'}</div>
-                    <div class="fp-title">${ev.title}</div>
-                    ${ev.date_text ? `<div class="fp-date">${ev.date_text}</div>` : ''}
-                    <div class="fp-desc">${ev.description || ''}</div>
-                    <div class="fp-footer">01435 863119 | services@tinkershatch.co.uk | New Pond Hill, TN21 0LX</div>
-                </div>`;
-            }).join('');
-            const modal = document.getElementById('testerModal');
-            if (modal) modal.classList.remove('active');
-            setTimeout(() => { window.print(); printArea.innerHTML = ''; }, 300);
-        } catch (err) { ToastModule.show("Error generating posters."); console.error(err); }
-    }
-
-    function init() {
-        loadFeatured();
-        const btn = document.getElementById('addFeaturedBtn');
-        if (btn) btn.addEventListener('click', addFeatured);
-        const cancelBtn = document.getElementById('cancelEditFeaturedBtn');
-        if (cancelBtn) cancelBtn.addEventListener('click', cancelEdit);
-        const printBtn = document.getElementById('printFeaturedPostersBtn');
-        if (printBtn) printBtn.addEventListener('click', printPosters);
-    }
+    async function loadFeatured() {const c = document.getElementById('featuredEventsContainer');if (!c || !supabaseClient) return;c.innerHTML = '<p style="color:var(--bark-soft);text-align:center;">Loading featured events...</p>';try {const { data, error } = await supabaseClient.from('featured_events').select('*').eq('is_active', true).order('id', { ascending: true });if (error) throw error;if (!data || data.length === 0) {c.innerHTML = '<p style="color:var(--bark-soft);text-align:center;">No featured events right now. Check back soon!</p>';return;}c.innerHTML = data.map(ev => {const bgStyle = ev.color && ev.color.startsWith('#') ? `linear-gradient(135deg, var(--honey), ${ev.color})` : (ev.color || 'linear-gradient(135deg, #A87816, #C25528)');return `<div class="featured-banner" style="background: ${bgStyle};"><div class="icon-row">${ev.icon || '🎉'}</div><span class="tag mb-4 inline-flex">Save the Date</span><h2>${ev.title}</h2>${ev.date_text ? `<p class="date">${ev.date_text}</p>` : ''}<p>${ev.description || ''}</p></div>`;}).join('');} catch (e) { c.innerHTML = '<p style="color:var(--bark-soft);text-align:center;">Could not load featured events.</p>'; }}
+    async function loadAdminFeatured() {const ac = document.getElementById('adminFeaturedContainer');if (!ac || !supabaseClient) return;ac.innerHTML = '<p class="text-sm" style="color: var(--bark-soft);">Loading...</p>';try {const { data, error } = await supabaseClient.from('featured_events').select('*').order('id', { ascending: false });if (error) throw error;if (!data || data.length === 0) { ac.innerHTML = '<p class="text-sm" style="color: var(--bark-soft);">No featured events found.</p>'; return; }ac.innerHTML = data.map(ev => `<div class="admin-film-item" style="padding: 8px 12px;"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;"><span style="font-size:.8rem;font-weight:700;flex:1;">${ev.icon} ${ev.title} ${ev.is_active ? '' : '(Hidden)'}</span><div class="flex gap-2"><button class="tester-btn edit-featured-btn" data-id="${ev.id}" style="width:auto;margin:0;padding:4px 8px;font-size:0.7rem;background:var(--honey);color:#000;">Edit</button><button class="tester-btn toggle-featured-btn" data-id="${ev.id}" data-active="${ev.is_active}" style="width:auto;margin:0;padding:4px 8px;font-size:0.7rem;background:${ev.is_active ? 'var(--sage)' : 'var(--bark-soft)'};">${ev.is_active ? 'Hide' : 'Show'}</button><button class="tester-btn del-featured-btn" data-id="${ev.id}" style="width:auto;margin:0;padding:4px 8px;font-size:0.7rem;background:var(--terracotta);">Delete</button></div></div></div>`).join('');ac.querySelectorAll('.edit-featured-btn').forEach(btn => btn.addEventListener('click', async (e) => {const id = e.target.dataset.id;try {const { data: ev, error } = await supabaseClient.from('featured_events').select('*').eq('id', id).single();if (error) throw error;document.getElementById('newFeaturedTitle').value = ev.title;document.getElementById('newFeaturedDate').value = ev.date_text || '';document.getElementById('newFeaturedDesc').value = ev.description || '';const iconSelect = document.getElementById('newFeaturedIcon');Array.from(iconSelect.querySelectorAll('option[data-temp="true"]')).forEach(opt => opt.remove());let iconExists = Array.from(iconSelect.options).some(opt => opt.value === ev.icon);if (iconExists) { iconSelect.value = ev.icon; } else if (ev.icon) {let opt = document.createElement('option');opt.value = ev.icon; opt.textContent = ev.icon + " (Current)"; opt.setAttribute('data-temp', 'true');iconSelect.prepend(opt); iconSelect.value = ev.icon;} else { iconSelect.value = '🎉'; }const colorSelect = document.getElementById('newFeaturedColor');if (ev.color && ev.color.startsWith('#')) { colorSelect.value = "linear-gradient(135deg, #A87816, #C25528)"; } else { colorSelect.value = ev.color || "linear-gradient(135deg, #A87816, #C25528)"; }editingId = id;document.getElementById('addFeaturedBtn').textContent = 'Update Event';document.getElementById('cancelEditFeaturedBtn').style.display = 'inline-block';document.getElementById('newFeaturedTitle').scrollIntoView({ behavior: 'smooth', block: 'center' });} catch (err) { ToastModule.show('Error fetching event details.'); }}));ac.querySelectorAll('.toggle-featured-btn').forEach(btn => btn.addEventListener('click', async (e) => {const id = e.target.dataset.id;const newActive = e.target.dataset.active !== 'true';try { await supabaseClient.from('featured_events').update({ is_active: newActive }).eq('id', id); ToastModule.show('Event updated!'); loadAdminFeatured(); loadFeatured(); } catch (err) { ToastModule.show('Error updating event.'); }}));ac.querySelectorAll('.del-featured-btn').forEach(btn => btn.addEventListener('click', async (e) => {const id = e.target.dataset.id;try { await supabaseClient.from('featured_events').delete().eq('id', id); ToastModule.show('Event deleted!'); if (editingId === id) cancelEdit(); loadAdminFeatured(); loadFeatured(); } catch (err) { ToastModule.show('Error deleting event.'); }}));} catch (e) { ac.innerHTML = '<p class="text-sm" style="color: var(--terracotta);">Error loading events.</p>'; }}
+    function cancelEdit() {editingId = null;document.getElementById('newFeaturedTitle').value = '';document.getElementById('newFeaturedDate').value = '';document.getElementById('newFeaturedDesc').value = '';const iconSelect = document.getElementById('newFeaturedIcon');Array.from(iconSelect.querySelectorAll('option[data-temp="true"]')).forEach(opt => opt.remove());iconSelect.value = '🎉';document.getElementById('newFeaturedColor').value = 'linear-gradient(135deg, #A87816, #C25528)';document.getElementById('addFeaturedBtn').textContent = 'Add Featured Event';document.getElementById('cancelEditFeaturedBtn').style.display = 'none';}
+    async function addFeatured() {const title = document.getElementById('newFeaturedTitle').value.trim();const date = document.getElementById('newFeaturedDate').value.trim();const desc = document.getElementById('newFeaturedDesc').value.trim();const icon = document.getElementById('newFeaturedIcon').value;const color = document.getElementById('newFeaturedColor').value;if (!title) { ToastModule.show('Title is required.'); return; }try {if (editingId) {const { error } = await supabaseClient.from('featured_events').update({ title: title, date_text: date, description: desc, icon: icon, color: color }).eq('id', editingId);if (error) throw error;ToastModule.show('Featured event updated!');} else {const { error } = await supabaseClient.from('featured_events').insert([{ title: title, date_text: date, description: desc, icon: icon, color: color }]);if (error) throw error;ToastModule.show('Featured event added!');}cancelEdit(); loadAdminFeatured(); loadFeatured();} catch (err) { ToastModule.show('Error saving event.'); }}
+    async function printPosters() {if (!supabaseClient) return;ToastModule.show("Preparing A4 posters...");try {const { data, error } = await supabaseClient.from('featured_events').select('*').eq('is_active', true).order('id', { ascending: true });if (error) throw error;if (!data || data.length === 0) { ToastModule.show("No active events to print."); return; }const printArea = document.getElementById('featuredPrintArea');printArea.innerHTML = data.map(ev => {let headerColor = '#C25528';if (ev.color) {const match = ev.color.match(/#[A-F0-9]{6}/ig);if (match && match.length > 1) headerColor = match[1];else if (match && match.length > 0) headerColor = match[0];}return `<div class="fp-poster"><div class="fp-brand">Tinkers Hatch</div><div class="fp-header" style="color: ${headerColor};">${ev.icon || '🎉'}</div><div class="fp-title">${ev.title}</div>${ev.date_text ? `<div class="fp-date">${ev.date_text}</div>` : ''}<div class="fp-desc">${ev.description || ''}</div><div class="fp-footer">01435 863119 | services@tinkershatch.co.uk | New Pond Hill, TN21 0LX</div></div>`;}).join('');const modal = document.getElementById('testerModal');if (modal) modal.classList.remove('active');setTimeout(() => { window.print(); printArea.innerHTML = ''; }, 300);} catch (err) { ToastModule.show("Error generating posters."); console.error(err); }}
+    function init() {loadFeatured();const btn = document.getElementById('addFeaturedBtn');if (btn) btn.addEventListener('click', addFeatured);const cancelBtn = document.getElementById('cancelEditFeaturedBtn');if (cancelBtn) cancelBtn.addEventListener('click', cancelEdit);const printBtn = document.getElementById('printFeaturedPostersBtn');if (printBtn) printBtn.addEventListener('click', printPosters);}
     return { init, loadAdminFeatured };
 })();
 
-const VibeModule=(function(){
-    async function loadVibe(){ if(!supabaseClient) return; try { const{data,error}=await supabaseClient.from('site_settings').select('current_vibe').eq('id',1).single(); if(error) throw error; applyVibe(data?.current_vibe||'neutral'); } catch(e){ applyVibe('neutral'); } }
-    function applyVibe(vibe){ const b=document.body; b.classList.remove('vibe-active','vibe-calm','vibe-neutral'); b.classList.add('vibe-'+vibe); document.querySelectorAll('.vibe-btn').forEach(btn=>{ btn.classList.toggle('active',btn.dataset.vibe===vibe); }); }
-    async function setVibe(vibe){ if(!supabaseClient) return; try { const{error}=await supabaseClient.from('site_settings').update({current_vibe:vibe}).eq('id',1); if(error) throw error; applyVibe(vibe); ToastModule.show(`Vibe set to: ${vibe.charAt(0).toUpperCase()+vibe.slice(1)}`); } catch(err){ ToastModule.show('Error updating the vibe.'); } }
-    function init(){ loadVibe(); document.querySelectorAll('.vibe-btn').forEach(btn=>{ btn.addEventListener('click',()=>setVibe(btn.dataset.vibe)); }); }
-    return{init};
-})();
+const VibeModule=(function(){async function loadVibe(){ if(!supabaseClient) return; try { const{data,error}=await supabaseClient.from('site_settings').select('current_vibe').eq('id',1).single(); if(error) throw error; applyVibe(data?.current_vibe||'neutral'); } catch(e){ applyVibe('neutral'); } }function applyVibe(vibe){ const b=document.body; b.classList.remove('vibe-active','vibe-calm','vibe-neutral'); b.classList.add('vibe-'+vibe); document.querySelectorAll('.vibe-btn').forEach(btn=>{ btn.classList.toggle('active',btn.dataset.vibe===vibe); }); }async function setVibe(vibe){ if(!supabaseClient) return; try { const{error}=await supabaseClient.from('site_settings').update({current_vibe:vibe}).eq('id',1); if(error) throw error; applyVibe(vibe); ToastModule.show(`Vibe set to: ${vibe.charAt(0).toUpperCase()+vibe.slice(1)}`); } catch(err){ ToastModule.show('Error updating the vibe.'); } }function init(){ loadVibe(); document.querySelectorAll('.vibe-btn').forEach(btn=>{ btn.addEventListener('click',()=>setVibe(btn.dataset.vibe)); }); }return{init};})();
 const GoldenHourModule=(function(){ function init(){ const now=new Date(); const hour=now.getHours(); if((hour>=6&&hour<8)||(hour>=18&&hour<20)){ document.body.classList.add('golden-hour'); } } return{init}; })();
 const HapticModule=(function(){ function init(){ document.body.addEventListener('click',e=>{ if(navigator.vibrate&&e.target.closest('button, .mood-btn, .ambient-btn, .gallery-thumb, .splash-shortcut')){ navigator.vibrate(8); } }, {passive:true}); } return{init}; })();
 const BionicModule=(function(){ function toggle(state){ const b=document.body; if(state==='on')b.classList.add('bionic-mode'); else b.classList.remove('bionic-mode'); safeSet('th-bionic',state); document.querySelectorAll('.bionic-btn').forEach(btn=>{ btn.setAttribute('aria-pressed',btn.dataset.bionic===state); }); if(state==='on'){ applyBionic(); } else { removeBionic(); } } function applyBionic(){ const elements=document.querySelectorAll('#main p, #main h1, #main h2, #main h3, #main li, #main summary'); elements.forEach(el=>{ if(el.dataset.bioniced) return; let html=el.innerHTML; if(html.includes('<')) return; const words=html.split(/(\s+)/); let newHtml=''; words.forEach(word=>{ if(word.trim().length>1){ const half=Math.ceil(word.length/2); newHtml+=`<b>${word.substring(0,half)}</b>${word.substring(half)}`; } else { newHtml+=word; } }); el.innerHTML=newHtml; el.dataset.bioniced='true'; }); } function removeBionic(){ const elements=document.querySelectorAll('[data-bioniced="true"]'); elements.forEach(el=>{ el.querySelectorAll('b').forEach(b=>{ const text=document.createTextNode(b.textContent); b.parentNode.replaceChild(text,b); }); el.normalize(); delete el.dataset.bioniced; }); } function init(){ const btns=document.querySelectorAll('.bionic-btn'); if(!btns.length) return; let s=safeGet('th-bionic')||'off'; if(s==='on'){ setTimeout(()=>toggle('on'),1000); } btns.forEach(btn=>btn.addEventListener('click',()=>toggle(btn.dataset.bionic))); } return{init}; })();
@@ -702,573 +218,81 @@ const NextSectionModule=(function(){ let sections=[]; function init(){ const btn
 
 const StaffModule=(function(){
     async function createAccount(){
-        const email=document.getElementById('newStaffEmail').value.trim();
-        const pass=document.getElementById('newStaffPass').value;
-        const role=document.getElementById('newStaffRole').value;
+        const email=document.getElementById('newStaffEmail').value.trim(); const pass=document.getElementById('newStaffPass').value; const role=document.getElementById('newStaffRole').value;
         if(!email||!pass){ ToastModule.show('Email and password are required.'); return; }
         if(pass.length<6){ ToastModule.show('Password must be at least 6 characters.'); return; }
         ToastModule.show('Creating account...');
-        try {
-            const { error } = await tempClient.auth.signUp({
-                email: email, password: pass,
-                options: { data: { role: role } }
-            });
-            if (error) throw error;
-            ToastModule.show('Account created successfully!');
-            document.getElementById('newStaffEmail').value = '';
-            document.getElementById('newStaffPass').value = '';
-            document.getElementById('newStaffRole').value = 'staff';
-        } catch (err) { ToastModule.show('Error: ' + err.message); }
+        try {const { error } = await supabaseClient.auth.signUp({ email: email, password: pass, options: { data: { role: role } }});if (error) throw error;ToastModule.show('Account created successfully!');document.getElementById('newStaffEmail').value = '';document.getElementById('newStaffPass').value = '';document.getElementById('newStaffRole').value = 'staff';} catch (err) { ToastModule.show('Error: ' + err.message); }
     }
-    function init(){
-        const btn=document.getElementById('createStaffBtn');
-        if(btn) btn.addEventListener('click', createAccount);
-    }
+    function init(){const btn=document.getElementById('createStaffBtn');if(btn) btn.addEventListener('click', createAccount);}
     return { init };
-})();
-const MessagesModule=(function(){
-    let activeConversationId = null;
-    let currentUserId = null;
-    let realtimeChannel = null;
-    let staffMembers = [];
-    let isMainSite = false;
-
-    async function init(){
-        if(!supabaseClient) return;
-        // Check if we're on main site or staff portal
-        isMainSite = document.getElementById('staff-messaging') !== null;
-        
-        console.log('MessagesModule init - isMainSite:', isMainSite);
-        
-        const { data: { user } } = await supabaseClient.auth.getUser();
-        if(!user) {
-            console.log('No authenticated user found');
-            return;
-        }
-        currentUserId = user.id;
-        console.log('Current user ID:', currentUserId);
-
-        // Show user greeting and messaging button on main site
-        if(isMainSite){
-            const messagingSection = document.getElementById('staff-messaging');
-            const messagingBtn = document.getElementById('staffMessagingBtn');
-            const userGreeting = document.getElementById('userGreeting');
-            const userName = document.getElementById('userName');
-            if (userGreeting && userName && user){   
-                userGreeting.style.display = 'flex';
-                const displayName = user.user_metadata?.full_name ||    
-                                 user.user_metadata?.name ||    
-                                    user.email?.split('@')[0] ||
-                                    'User';
-                userName.textContent = `Hello, ${displayName}`;
-            }
-
-            if(messagingSection){
-                messagingSection.style.display = 'block';
-            }
-           if(messagingBtn){
-                messagingBtn.style.display = 'flex';
-                messagingBtn.addEventListener('click', () => {
-                    messagingSection.scrollIntoView({ behavior: 'smooth' });
-                });
-            }
-        } 
-
-      
-        // Load staff members for name display
-        await loadStaffMembers();
-
-        // Load existing conversations
-        await loadConversations();
-
-        // Setup Realtime listener
-        if(realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
-        realtimeChannel = supabaseClient.channel('public:messages')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-                if(payload.new.conversation_id === activeConversationId){
-                    appendMessage(payload.new);
-                }
-                loadConversations(); // Update sidebar preview
-            })
-            .subscribe();
-
-        // Setup UI listeners based on which site we're on
-        setupUIListeners();
-        
-        console.log('MessagesModule initialized successfully');
-    }
-    
-    function UserGreeting(user){
-        const userGreeting = document.getElementById('userGreeting');
-        const userName = document.getElementById('userName');
-        
-        if(userGreeting && userName){
-            if(user){
-                userGreeting.style.display = 'flex';
-                const displayName = user.user_metadata?.full_name || 
-                                   user.user_metadata?.name || 
-                                   user.email?.split('@')[0] || 
-                                   'User';
-                userName.textContent = `Hello, ${displayName}`;
-            } else {
-                userGreeting.style.display = 'none';
-            }
-        }
-    }
-    function setupUIListeners(){
-        const prefix = isMainSite ? 'main-' : '';
-        
-        const startBtn = document.getElementById(prefix + 'start-chat-btn');
-        const sendBtn = document.getElementById(prefix + 'chat-send-btn');
-        const messageInput = document.getElementById(prefix + 'chat-message-input');
-        const toggleBtn = document.getElementById(prefix + 'toggle-manual-input');
-
-        if(startBtn) startBtn.addEventListener('click', startNewChat);
-        if(sendBtn) sendBtn.addEventListener('click', sendMessage);
-        if(messageInput) {
-            messageInput.addEventListener('keypress', e => {
-                if(e.key === 'Enter') sendMessage();
-            });
-        }
-        
-        // Toggle manual input
-        if(toggleBtn){
-            toggleBtn.addEventListener('click', () => {
-                const manualBox = document.getElementById(prefix + 'manual-chat-box');
-                manualBox.style.display = manualBox.style.display === 'none' ? 'block' : 'none';
-            });
-        }
-    }
-
-    async function loadStaffMembers(){
-        try {
-            // Try to get staff from staff table
-            const { data: staffData, error: staffError } = await supabaseClient
-                .from('staff')
-                .select('id, email, name')
-                .eq('is_active', true);
-            
-            if(!staffError && staffData && staffData.length > 0){
-                console.log('Loaded staff members from staff table:', staffData);
-                staffMembers = staffData;
-                populateStaffDropdown();
-            } else {
-                console.log('No staff table or no data, error:', staffError);
-                // Try to get all users from the profiles table (if it exists)
-                const { data: profilesData, error: profilesError } = await supabaseClient
-                    .from('profiles')
-                    .select('id, email, full_name');
-                
-                if(!profilesError && profilesData && profilesData.length > 0){
-                    console.log('Loaded profiles:', profilesData);
-                    staffMembers = profilesData.map(p => ({
-                        id: p.id,
-                        email: p.email,
-                        name: p.full_name || p.email
-                    }));
-                    populateStaffDropdown();
-                } else {
-                    console.log('No profiles table either, error:', profilesError);
-                    // As a fallback, add the current user so they can at least see themselves
-                    if(currentUserId){
-                        staffMembers = [{
-                            id: currentUserId,
-                            email: 'You',
-                            name: 'You (Current User)'
-                        }];
-                    } else {
-                        staffMembers = [];
-                    }
-                    populateStaffDropdown();
-                }
-            }
-        } catch(e){
-            console.error('Error loading staff members:', e);
-            staffMembers = [];
-            populateStaffDropdown();
-        }
-    }
-
-    function populateStaffDropdown(){
-        const prefix = isMainSite ? 'main-' : '';
-        const select = document.getElementById(prefix + 'chat-recipient-select');
-        if(!select) {
-            console.log('Dropdown element not found with prefix:', prefix);
-            return;
-        }
-        
-        console.log('Populating dropdown with staff members:', staffMembers.length);
-        console.log('Current user ID:', currentUserId);
-        
-        select.innerHTML = '<option value="">Select staff member...</option>';
-        
-        let addedCount = 0;
-        staffMembers.forEach(staff => {
-            console.log('Checking staff member:', staff);
-            if(staff.id !== currentUserId){
-                const option = document.createElement('option');
-                option.value = staff.email;
-                option.textContent = staff.name || staff.full_name || staff.email;
-                select.appendChild(option);
-                addedCount++;
-            }
-        });
-        
-        console.log('Added', addedCount, 'staff members to dropdown');
-        
-        // If no staff members available, show message
-        if(addedCount === 0){
-            const option = document.createElement('option');
-            option.value = "";
-            option.textContent = "No staff members available";
-            option.disabled = true;
-            select.appendChild(option);
-        }
-    }
-
-    function getStaffNameById(userId){
-        const staff = staffMembers.find(s => s.id === userId);
-        return staff ? (staff.name || staff.full_name || staff.email) : null;
-    }
-
-    function getStaffNameByEmail(email){
-        const staff = staffMembers.find(s => s.email === email);
-        return staff ? (staff.name || staff.full_name || staff.email) : email;
-    }
-
-    async function loadConversations(){
-        const prefix = isMainSite ? 'main-' : '';
-        const listEl = document.getElementById(prefix + 'conversation-list');
-        if(!listEl) return;
-        
-        listEl.innerHTML = '<p style="padding:16px; font-size:0.8rem; opacity:0.5;">Loading chats...</p>';
-
-        const { data: participations, error } = await supabaseClient
-            .from('conversation_participants')
-            .select('conversation_id')
-            .eq('user_id', currentUserId);
-
-        if(error || !participations.length){
-            listEl.innerHTML = '<p style="padding:16px; font-size:0.8rem; opacity:0.5;">No messages yet.</p>';
-            return;
-        }
-
-        const convIds = participations.map(p => p.conversation_id);
-        const { data: convs } = await supabaseClient
-            .from('conversations')
-            .select('*')
-            .in('id', convIds)
-            .order('created_at', { ascending: false });
-
-        listEl.innerHTML = '';
-        for(let conv of convs){
-            let displayName = conv.group_name || "Private Chat";
-            
-            if(!conv.is_group){
-                // Find the OTHER participant
-                const { data: otherParts } = await supabaseClient
-                    .from('conversation_participants')
-                    .select('user_id')
-                    .eq('conversation_id', conv.id)
-                    .neq('user_id', currentUserId);
-                
-                if(otherParts && otherParts.length > 0){
-                    const staffName = getStaffNameById(otherParts[0].user_id);
-                    if(staffName) displayName = staffName;
-                    else {
-                        const { data: emailData, error: emailErr } = await supabaseClient.rpc('get_user_email', { user_id_input: otherParts[0].user_id });
-                        if(!emailErr && emailData) displayName = emailData;
-                    }
-                }
-            }
-
-            // Get last message for preview
-            const { data: lastMsg } = await supabaseClient
-                .from('messages')
-                .select('content, created_at')
-                .eq('conversation_id', conv.id)
-                .order('created_at', { ascending: false })
-                .limit(1);
-
-            const preview = lastMsg && lastMsg.length ? lastMsg[0].content.substring(0, 30) : 'No messages yet';
-
-            const item = document.createElement('div');
-            item.className = 'conv-item' + (conv.id === activeConversationId ? ' active' : '');
-            item.innerHTML = `<div class="conv-name">${displayName}</div><div class="conv-preview">${preview}</div>`;
-            item.addEventListener('click', () => openConversation(conv.id, displayName));
-            listEl.appendChild(item);
-        }
-    }
-
-    async function startNewChat(){
-        const prefix = isMainSite ? 'main-' : '';
-        const select = document.getElementById(prefix + 'chat-recipient-select');
-        const manualInput = document.getElementById(prefix + 'chat-recipient-email');
-        
-        let email = select.value;
-        let displayName = email;
-        
-        // If dropdown is empty, try manual input
-        if(!email && manualInput){
-            email = manualInput.value.trim();
-        }
-        
-        if(!email) return;
-
-        // Check if it's a staff member from our list
-        let targetUserId = null;
-        const staff = staffMembers.find(s => s.email === email);
-        
-        if(staff){
-            targetUserId = staff.id;
-            displayName = staff.name || staff.full_name || staff.email;
-        } else {
-            // Fallback to email lookup via RPC
-            const { data: userIdData, error } = await supabaseClient.rpc('get_user_id', { email_input: email });
-            if(!error && userIdData){
-                targetUserId = userIdData;
-                displayName = email;
-            }
-        }
-
-        if(!targetUserId){
-            ToastModule.show('Could not find user with that email.');
-            return;
-        }
-
-        if(targetUserId === currentUserId){
-            ToastModule.show('You cannot start a chat with yourself.');
-            return;
-        }
-
-        // Check if 1-on-1 conversation already exists
-        const { data: existingConvos } = await supabaseClient.rpc('find_private_conversation', { user1: currentUserId, user2: targetUserId });
-        
-        if(existingConvos){
-            select.value = '';
-            if(manualInput) manualInput.value = '';
-            openConversation(existingConvos, displayName);
-            return;
-        }
-        
-        const { data: newConv, error: convError } = await supabaseClient.from('conversations').insert([{ is_group: false }]).select().single();
-        
-        if(convError){
-            ToastModule.show('Error creating conversation.');
-            return;
-        }
-
-        await supabaseClient.from('conversation_participants').insert([
-            { conversation_id: newConv.id, user_id: currentUserId },
-            { conversation_id: newConv.id, user_id: targetUserId }
-        ]);
-
-        select.value = '';
-        if(manualInput) manualInput.value = '';
-        ToastModule.show('Chat started!');
-        await loadConversations();
-        openConversation(newConv.id, displayName);
-    }
-
-    async function openConversation(convId, displayName){
-        activeConversationId = convId;
-        const prefix = isMainSite ? 'main-' : '';
-        
-        document.getElementById(prefix + 'chat-header').textContent = displayName;
-        document.getElementById(prefix + 'chat-message-input').disabled = false;
-        document.getElementById(prefix + 'chat-send-btn').disabled = false;
-        
-        const msgsEl = document.getElementById(prefix + 'chat-messages');
-        msgsEl.innerHTML = '<p style="opacity:0.5;">Loading messages...</p>';
-
-        const { data: messages, error } = await supabaseClient
-            .from('messages')
-            .select('*')
-            .eq('conversation_id', convId)
-            .order('created_at', { ascending: true });
-
-        if(error){
-            msgsEl.innerHTML = '<p style="color:red;">Error loading messages.</p>';
-            return;
-        }
-
-        msgsEl.innerHTML = '';
-        messages.forEach(msg => appendMessage(msg));
-        await loadConversations(); // Update active state in sidebar
-    }
-
-    function appendMessage(msg){
-        const prefix = isMainSite ? 'main-' : '';
-        const msgsEl = document.getElementById(prefix + 'chat-messages');
-        const bubble = document.createElement('div');
-        bubble.className = 'message-bubble ' + (msg.sender_id === currentUserId ? 'sent' : 'received');
-        
-        const time = new Date(msg.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-        bubble.innerHTML = `${msg.content}<span class="message-time">${time}</span>`;
-        
-        msgsEl.appendChild(bubble);
-        msgsEl.scrollTop = msgsEl.scrollHeight;
-    }
-
-    async function sendMessage(){
-        const prefix = isMainSite ? 'main-' : '';
-        const input = document.getElementById(prefix + 'chat-message-input');
-        const content = input.value.trim();
-        if(!content || !activeConversationId) return;
-
-        input.value = '';
-        
-        const { error } = await supabaseClient.from('messages').insert([
-            {
-                conversation_id: activeConversationId,
-                sender_id: currentUserId,
-                content: content
-            }
-        ]);
-
-        if(error){
-            ToastModule.show('Failed to send message.');
-            input.value = content; // Restore text
-        }
-    }
-  return { init }; 
-
 })();
 
 const AuthModule=(function(){
     function init(){
         if(!supabaseClient) return;
-        // Listen for auth state changes to update user greeting on main site
         supabaseClient.auth.onAuthStateChange((event, session) => {
             if(event === 'SIGNED_IN' && session?.user){
-                const userGreeting = document.getElementById('userGreeting');
-                const userName = document.getElementById('userName');
-                
-                if(userGreeting && userName){
-                    userGreeting.style.display = 'flex';
-                    const displayName = session.user.user_metadata?.full_name || 
-                                       session.user.user_metadata?.name || 
-                                       session.user.email?.split('@')[0] || 
-                                       'User';
-                    userName.textContent = `Hello, ${displayName}`;
-                }
-            } else if(event === 'SIGNED_OUT'){
-                const userGreeting = document.getElementById('userGreeting');
-                if(userGreeting){
-                    userGreeting.style.display = 'none';
-                }
-            }
+                const userGreeting = document.getElementById('userGreeting'); const userName = document.getElementById('userName');
+                if(userGreeting && userName){userGreeting.style.display = 'flex';const displayName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User';userName.textContent = `Hello, ${displayName}`;}
+            } else if(event === 'SIGNED_OUT'){const userGreeting = document.getElementById('userGreeting');if(userGreeting){userGreeting.style.display = 'none';}}
         });
     }
     return { init };
 })();
 
 const TesterModule=(function(){
-    const m=document.getElementById('testerModal'),
-          la=document.getElementById('testerLogin'),
-          ma=document.getElementById('testerMenu'),
-          emailInput=document.getElementById('testerEmail'),
-          pi=document.getElementById('testerPass'),
-          et=document.getElementById('testerError'),
-          gearBtn=document.getElementById('testerOpenBtn'),
-          footerLogin=document.getElementById('footerStaffLogin'),
-          loginBtn=document.getElementById('testerLoginBtn');
-    
+    const m=document.getElementById('testerModal'), la=document.getElementById('testerLogin'), ma=document.getElementById('testerMenu'), emailInput=document.getElementById('testerEmail'), pi=document.getElementById('testerPass'), et=document.getElementById('testerError'), gearBtn=document.getElementById('testerOpenBtn'), footerLogin=document.getElementById('footerStaffLogin'), loginBtn=document.getElementById('testerLoginBtn');
     let isMenuLoaded = false; 
-
-    function o(){
-        m.classList.add('active');
-        et.textContent='';
-        checkAuthState();
-    }
-    function c(){
-        m.classList.remove('active');
-    }
+    function o(){m.classList.add('active');et.textContent='';checkAuthState();}
+    function c(){m.classList.remove('active');}
     async function login(){
-        const email=emailInput.value.trim();
-        const pass=pi.value;
-        if(!email||!pass){
-            et.textContent='Please enter both email and password.';
-            return;
-        }
-        loginBtn.textContent='Verifying...';
-        loginBtn.disabled=true;
-        et.textContent='';
-        try{
-            const{data,error}=await supabaseClient.auth.signInWithPassword({email:email,password:pass});
-            if(error) throw error;
-            showMenu();
-        }catch(err){
-            et.textContent='Login failed: '+err.message;
-            loginBtn.textContent='Log In';
-            loginBtn.disabled=false;
-        }
+        const email=emailInput.value.trim(); const pass=pi.value;
+        if(!email||!pass){et.textContent='Please enter both email and password.';return;}
+        loginBtn.textContent='Verifying...'; loginBtn.disabled=true; et.textContent='';
+        try{const{data,error}=await supabaseClient.auth.signInWithPassword({email:email,password:pass});if(error) throw error;showMenu();}catch(err){et.textContent='Login failed: '+err.message;loginBtn.textContent='Log In';loginBtn.disabled=false;}
     }
-    async function logout(){
-        await supabaseClient.auth.signOut();
-        showLogin();
-        c();
-    }
+    async function logout(){await supabaseClient.auth.signOut();showLogin();c();}
     async function showMenu(){
-        if(isMenuLoaded) return;
-        isMenuLoaded = true;
-        
+        if(isMenuLoaded) return; isMenuLoaded = true;
         try {
-            la.style.display='none';
-            ma.style.display='flex'; // Use flex for the sidebar layout
-            if(gearBtn) gearBtn.classList.add('show');
-            if(footerLogin) footerLogin.style.display='none';
-            loginBtn.textContent='Log In';
-            loginBtn.disabled=false;
-            
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            const user=session?.user;
-            const userRole=user?.user_metadata?.role;
-            
+            la.style.display='none'; ma.style.display='flex'; 
+            if(gearBtn) gearBtn.classList.add('show'); if(footerLogin) footerLogin.style.display='none';
+            loginBtn.textContent='Log In'; loginBtn.disabled=false;
+            const { data: { session } } = await supabaseClient.auth.getSession(); const user=session?.user; const userRole=user?.user_metadata?.role;
             const menuTabBtn=document.querySelector('button[data-tab="menu"]');
-            if(menuTabBtn){
-                if(userRole==='chef'||userRole==='admin'){
-                    menuTabBtn.style.display='flex';
-                    if(typeof MenuModule!=='undefined') MenuModule.loadAdminMenu();
-                }else{
-                    menuTabBtn.style.display='none';
-                }
+            if(menuTabBtn){if(userRole==='chef'||userRole==='admin'){menuTabBtn.style.display='flex';if(typeof MenuModule!=='undefined') MenuModule.loadAdminMenu();}else{menuTabBtn.style.display='none';}}
+            const adminThemes=document.getElementById('adminOnlyThemes'); if(adminThemes) adminThemes.style.display=(userRole==='admin')?'block':'none';
+            const maintBtn=document.getElementById('toggleMaintenanceBtn'); if(maintBtn) maintBtn.style.display=(userRole==='admin')?'block':'none';
+            const staffTabBtn=document.getElementById('staffTabBtn'); if(staffTabBtn) staffTabBtn.style.display=(userRole==='admin')?'flex':'none';
+            const userId = user ? user.id : 'default'; const staffThemeKey = `th-staff-theme-${userId}`; const savedTheme = safeGet(staffThemeKey) || 'staff-dark';
+            
+            // Use the global applyHavenTheme function so it syncs with the iframe
+            if (typeof window.applyHavenTheme === 'function') {
+                window.applyHavenTheme(savedTheme);
+            } else {
+                document.body.classList.remove('staff-dark', 'staff-light', 'staff-warm', 'staff-ocean', 'staff-forest', 'staff-sunset'); 
+                document.body.classList.add(savedTheme);
             }
-            
-            const adminThemes=document.getElementById('adminOnlyThemes');
-            if(adminThemes) adminThemes.style.display=(userRole==='admin')?'block':'none';
-            const maintBtn=document.getElementById('toggleMaintenanceBtn');
-            if(maintBtn) maintBtn.style.display=(userRole==='admin')?'block':'none';
-            
-            // Hide Staff Creation panel if not admin
-            const staffTabBtn=document.getElementById('staffTabBtn');
-            if(staffTabBtn) staffTabBtn.style.display=(userRole==='admin')?'flex':'none';
-            
-            // === USER-SPECIFIC DASHBOARD THEME ===
-            const userId = user ? user.id : 'default';
-            const staffThemeKey = `th-staff-theme-${userId}`;
-            const savedTheme = safeGet(staffThemeKey) || 'staff-dark';
-            
-            document.body.classList.remove('staff-dark', 'staff-light', 'staff-warm');
-            document.body.classList.add(savedTheme);
             
             document.querySelectorAll('.staff-theme-btn').forEach(btn => {
                 if(btn.dataset.theme === savedTheme) btn.classList.add('theme-btn-active');
                 else btn.classList.remove('theme-btn-active');
-                
-                btn.onclick = () => {
-                    const newTheme = btn.dataset.theme;
-                    document.body.classList.remove('staff-dark', 'staff-light', 'staff-warm');
-                    document.body.classList.add(newTheme);
-                    safeSet(staffThemeKey, newTheme);
-                    if(typeof ToastModule!=='undefined') ToastModule.show('Dashboard theme saved!');
-                    
-                    document.querySelectorAll('.staff-theme-btn').forEach(b => b.classList.remove('theme-btn-active'));
-                    btn.classList.add('theme-btn-active');
+                btn.onclick = () => { 
+                    const newTheme = btn.dataset.theme; 
+                    if (typeof window.applyHavenTheme === 'function') {
+                        window.applyHavenTheme(newTheme);
+                    } else {
+                        document.body.classList.remove('staff-dark', 'staff-light', 'staff-warm', 'staff-ocean', 'staff-forest', 'staff-sunset'); 
+                        document.body.classList.add(newTheme);
+                    }
+                    safeSet(staffThemeKey, newTheme); 
+                    if(typeof ToastModule!=='undefined') ToastModule.show('Dashboard theme saved!'); 
+                    document.querySelectorAll('.staff-theme-btn').forEach(b => b.classList.remove('theme-btn-active')); 
+                    btn.classList.add('theme-btn-active'); 
                 };
             });
-
-            // Load all admin data safely
+            document.querySelectorAll('.staff-theme-btn').forEach(btn => { if(btn.dataset.theme === savedTheme) btn.classList.add('theme-btn-active'); else btn.classList.remove('theme-btn-active'); btn.onclick = () => { const newTheme = btn.dataset.theme; document.body.classList.remove('staff-dark', 'staff-light', 'staff-warm', 'staff-ocean', 'staff-forest', 'staff-sunset'); document.body.classList.add(newTheme); safeSet(staffThemeKey, newTheme); if(typeof ToastModule!=='undefined') ToastModule.show('Dashboard theme saved!'); document.querySelectorAll('.staff-theme-btn').forEach(b => b.classList.remove('theme-btn-active')); btn.classList.add('theme-btn-active'); }; });
             if(typeof FeaturedEventsModule!=='undefined') FeaturedEventsModule.loadAdminFeatured();
             if(typeof FilmNightModule!=='undefined') FilmNightModule.loadFilms();
             if(typeof LayoutModule!=='undefined') LayoutModule.onTesterOpen();
@@ -1280,172 +304,22 @@ const TesterModule=(function(){
             if(typeof CelebrationModule!=='undefined') CelebrationModule.loadAdminCelebrations();
             if(typeof CommunityModule!=='undefined') CommunityModule.loadAdminCommunity();
             if(typeof MenuModule!=='undefined' && (userRole==='chef'||userRole==='admin')) MenuModule.loadAdminMenu();
-            
-            // Slight delay to ensure Supabase auth is fully propagated for storage permissions
-            setTimeout(() => {
-                renderPhotoAdmin();
-            }, 500);
-            
-        } catch(e) {
-            console.error("Dashboard Load Error:", e);
-            isMenuLoaded = false;
-            loginBtn.textContent='Log In';
-            loginBtn.disabled=false;
-            et.textContent='Error loading dashboard: ' + e.message;
-        }
+            setTimeout(() => { renderPhotoAdmin(); }, 500);
+        } catch(e) { console.error("Dashboard Load Error:", e); isMenuLoaded = false; loginBtn.textContent='Log In'; loginBtn.disabled=false; et.textContent='Error loading dashboard: ' + e.message; }
     }
-    function showLogin(){
-        isMenuLoaded = false;
-        la.style.display='flex'; // Use flex to center the login box
-        ma.style.display='none';
-        if(gearBtn) gearBtn.classList.remove('show');
-        if(footerLogin) footerLogin.style.display='block';
-        pi.value='';
-        emailInput.value='';
-        loginBtn.textContent='Log In';
-        loginBtn.disabled=false;
-    }
-    async function checkAuthState(){
-        try {
-            const{data:{session}}=await supabaseClient.auth.getSession();
-            if(session){ showMenu(); } else { showLogin(); }
-        } catch(e) {
-            showLogin();
-        }
-    }
-    function ss(s, e){
-        const b=document.body;
-        b.classList.remove('season-winter','season-spring','season-summer','season-autumn','theme-dark','theme-warm','theme-soft','theme-high-contrast','palette-ocean','palette-sunset','palette-berry');
-        safeSet('th-theme','light');
-        safeSet('th-palette','nature');
-        if(s==='auto'){
-            const cs=SeasonalModule.getCurrentSeason();
-            b.classList.add('season-'+cs);
-            generateSeasonalBackground(cs);
-        }else{
-            b.classList.add('season-'+s);
-            generateSeasonalBackground(s);
-        }
-        document.querySelectorAll('.tester-season-btn').forEach(btn=>btn.classList.remove('active'));
-        if(e && e.target) e.target.classList.add('active');
-        document.querySelectorAll('.theme-btn').forEach(btn=>btn.setAttribute('aria-pressed',btn.dataset.theme==='light'));
-    }
-    function bc(){
-        const inp=document.getElementById('broadcastInput'),msg=inp.value.trim();
-        if(!msg) return;
-        fetch('https://ntfy.sh/tinkers-hatch-live',{method:'POST',body:msg})
-            .then(()=>{inp.value='';ToastModule.show('Message broadcasted successfully!');})
-            .catch(err=>ToastModule.show('Error broadcasting message.'));
-    }
-    async function uploadPhoto(){
-        const fileInput=document.getElementById('photoUploadInput');
-        const file=fileInput.files[0];
-        if(!file){ToastModule.show("Please select a file first.");return;}
-        if(!file.type.startsWith('image/')){ToastModule.show("Please upload an image file.");return;}
-        ToastModule.show("Uploading...");
-        const captionInput=document.getElementById('photoCaptionInput');
-        let caption=captionInput?captionInput.value.trim():'';
-        if(caption){caption='_caption_'+caption.replace(/[^a-zA-Z0-9 ]/g,'').replace(/\s+/g,'-');}
-        const fileName=`photo_${Date.now()}${caption}_${file.name.replace(/\s+/g,'_')}`;
-        const{data,error}=await supabaseClient.storage.from('gallery').upload(fileName,file);
-        if(error){
-            ToastModule.show("Upload failed: "+error.message);
-        }else{
-            ToastModule.show("Photo uploaded successfully!");
-            fetch('https://ntfy.sh/tinkers-hatch-live',{method:'POST',body:'New photos added to the gallery!'}).catch(()=>{});
-            fileInput.value='';
-            if(captionInput) captionInput.value='';
-            if(typeof LightboxModule!=='undefined') LightboxModule.loadImages();
-            renderPhotoAdmin();
-        }
-    }
-    async function renderPhotoAdmin(){
-        const ac=document.getElementById('adminPhotoContainer');
-        if(!ac) return;
-        ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">Loading photos...</p>';
-        try{
-            const{data,error}=await supabaseClient.storage.from('gallery').list('',{limit:100,offset:0,sortBy:{column:'created_at',order:'desc'}});
-            if(error) throw error;
-            if(!data||data.length===0){ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No photos found.</p>';return;}
-            const files=data.filter(file=>!file.name.startsWith('.'));
-            if(files.length===0){ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No photos found.</p>';return;}
-            
-            ac.innerHTML=files.map(file => {
-                const { data: urlData } = supabaseClient.storage.from('gallery').getPublicUrl(file.name);
-                const imgUrl = urlData.publicUrl;
-                return `<div class="admin-film-item" style="padding: 8px 12px; display: flex; align-items: center; gap: 12px;">
-                            <img src="${imgUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; flex-shrink: 0;">
-                            <span style="font-size:.8rem;font-weight:700;word-break:break-all; flex: 1;">${file.name}</span>
-                            <button class="tester-btn del-photo-btn" data-path="${file.name}" style="width:auto;margin:0;padding:4px 8px;font-size:0.7rem;background:var(--terracotta);">Delete</button>
-                        </div>`;
-            }).join('');
-            
-            ac.querySelectorAll('.del-photo-btn').forEach(btn=>btn.addEventListener('click',async(e)=>{
-                const path=e.target.dataset.path;
-                if(confirm('Are you sure you want to delete this photo?')){
-                    try{
-                        const{error:delError}=await supabaseClient.storage.from('gallery').remove([path]);
-                        if(delError) throw delError;
-                        ToastModule.show('Photo deleted!');
-                        renderPhotoAdmin();
-                        if(typeof LightboxModule!=='undefined') LightboxModule.loadImages();
-                    }catch(err){
-                        ToastModule.show('Error deleting photo.');
-                    }
-                }
-            }));
-        }catch(err){
-            ac.innerHTML='<p class="text-sm" style="color: var(--terracotta);">Error loading photos.</p>';
-        }
-    }
-    function init(){
-        const modalExists = document.getElementById('testerModal');
-        if(!modalExists) return; 
-
-        if(gearBtn) gearBtn.addEventListener('click',o);
-        if(footerLogin) footerLogin.addEventListener('click',o);
-        
-        const closeBtn = document.getElementById('testerCloseBtn');
-        if(closeBtn) closeBtn.addEventListener('click',c);
-        
-        const loginBtn = document.getElementById('testerLoginBtn');
-        // FIX: Prevent default to stop mobile form submission refreshing the app
-        if(loginBtn) loginBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            login();
-        });
-        
-        const logoutBtn = document.getElementById('testerLogoutBtn');
-        if(logoutBtn) logoutBtn.addEventListener('click',logout);
-        
-        if(pi) pi.addEventListener('keypress',e=>{ if(e.key==='Enter'){ login(); } });
-        if(emailInput) emailInput.addEventListener('keypress',e=>{ if(e.key==='Enter'){ pi.focus(); } });
-        
-        document.querySelectorAll('.tester-season-btn').forEach(b=>b.addEventListener('click',e=>ss(e.target.dataset.season, e)));
-        
-        const broadcastBtn = document.getElementById('broadcastBtn');
-        if(broadcastBtn) broadcastBtn.addEventListener('click',bc);
-        
-        const uploadBtn = document.getElementById('uploadPhotoBtn');
-        if(uploadBtn) uploadBtn.addEventListener('click',uploadPhoto);
-        
-        m.addEventListener('click',e=>{ if(e.target===m){ c(); } });
-        
-        supabaseClient.auth.onAuthStateChange((event,session)=>{
-            if(event==='SIGNED_IN'){ showMenu(); }
-            else if(event==='SIGNED_OUT'){ showLogin(); }
-        });
-        
-        showLogin(); 
-        checkAuthState();
-    }
+    function showLogin(){ isMenuLoaded = false; la.style.display='flex'; ma.style.display='none'; if(gearBtn) gearBtn.classList.remove('show'); if(footerLogin) footerLogin.style.display='block'; pi.value=''; emailInput.value=''; loginBtn.textContent='Log In'; loginBtn.disabled=false; }
+    async function checkAuthState(){ try { const{data:{session}}=await supabaseClient.auth.getSession(); if(session){ showMenu(); } else { showLogin(); } } catch(e) { showLogin(); } }
+    function ss(s, e){ const b=document.body; b.classList.remove('season-winter','season-spring','season-summer','season-autumn','theme-dark','theme-warm','theme-soft','theme-high-contrast','palette-ocean','palette-sunset','palette-berry'); safeSet('th-theme','light'); safeSet('th-palette','nature'); if(s==='auto'){const cs=SeasonalModule.getCurrentSeason();b.classList.add('season-'+cs);generateSeasonalBackground(cs);}else{b.classList.add('season-'+s);generateSeasonalBackground(s);} document.querySelectorAll('.tester-season-btn').forEach(btn=>btn.classList.remove('active')); if(e && e.target) e.target.classList.add('active'); document.querySelectorAll('.theme-btn').forEach(btn=>btn.setAttribute('aria-pressed',btn.dataset.theme==='light')); }
+    function bc(){ const inp=document.getElementById('broadcastInput'),msg=inp.value.trim(); if(!msg) return; fetch('https://ntfy.sh/tinkers-hatch-live',{method:'POST',body:msg}).then(()=>{inp.value='';ToastModule.show('Message broadcasted successfully!');}).catch(err=>ToastModule.show('Error broadcasting message.')); }
+    async function uploadPhoto(){ const fileInput=document.getElementById('photoUploadInput'); const file=fileInput.files[0]; if(!file){ToastModule.show("Please select a file first.");return;} if(!file.type.startsWith('image/')){ToastModule.show("Please upload an image file.");return;} ToastModule.show("Uploading..."); const captionInput=document.getElementById('photoCaptionInput'); let caption=captionInput?captionInput.value.trim():''; if(caption){caption='_caption_'+caption.replace(/[^a-zA-Z0-9 ]/g,'').replace(/\s+/g,'-');} const fileName=`photo_${Date.now()}${caption}_${file.name.replace(/\s+/g,'_')}`; const{data,error}=await supabaseClient.storage.from('gallery').upload(fileName,file); if(error){ToastModule.show("Upload failed: "+error.message);}else{ToastModule.show("Photo uploaded successfully!"); fetch('https://ntfy.sh/tinkers-hatch-live',{method:'POST',body:'New photos added to the gallery!'}).catch(()=>{}); fileInput.value=''; if(captionInput) captionInput.value=''; if(typeof LightboxModule!=='undefined') LightboxModule.loadImages(); renderPhotoAdmin(); }}
+    async function renderPhotoAdmin(){ const ac=document.getElementById('adminPhotoContainer'); if(!ac) return; ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">Loading photos...</p>'; try{const{data,error}=await supabaseClient.storage.from('gallery').list('',{limit:100,offset:0,sortBy:{column:'created_at',order:'desc'}}); if(error) throw error; if(!data||data.length===0){ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No photos found.</p>';return;} const files=data.filter(file=>!file.name.startsWith('.')); if(files.length===0){ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No photos found.</p>';return;} ac.innerHTML=files.map(file => { const { data: urlData } = supabaseClient.storage.from('gallery').getPublicUrl(file.name); const imgUrl = urlData.publicUrl; return `<div class="admin-film-item" style="padding: 8px 12px; display: flex; align-items: center; gap: 12px;"><img src="${imgUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; flex-shrink: 0;"><span style="font-size:.8rem;font-weight:700;word-break:break-all; flex: 1;">${file.name}</span><button class="tester-btn del-photo-btn" data-path="${file.name}" style="width:auto;margin:0;padding:4px 8px;font-size:0.7rem;background:var(--terracotta);">Delete</button></div>`;}).join(''); ac.querySelectorAll('.del-photo-btn').forEach(btn=>btn.addEventListener('click',async(e)=>{ const path=e.target.dataset.path; if(confirm('Are you sure you want to delete this photo?')){ try{const{error:delError}=await supabaseClient.storage.from('gallery').remove([path]); if(delError) throw delError; ToastModule.show('Photo deleted!'); renderPhotoAdmin(); if(typeof LightboxModule!=='undefined') LightboxModule.loadImages(); }catch(err){ ToastModule.show('Error deleting photo.'); } } })); }catch(err){ ac.innerHTML='<p class="text-sm" style="color: var(--terracotta);">Error loading photos.</p>'; } }
+    function init(){ const modalExists = document.getElementById('testerModal'); if(!modalExists) return; if(gearBtn) gearBtn.addEventListener('click',o); if(footerLogin) footerLogin.addEventListener('click',o); const closeBtn = document.getElementById('testerCloseBtn'); if(closeBtn) closeBtn.addEventListener('click',c); const loginBtn = document.getElementById('testerLoginBtn'); if(loginBtn) loginBtn.addEventListener('click', function(e) { e.preventDefault(); login(); }); const logoutBtn = document.getElementById('testerLogoutBtn'); if(logoutBtn) logoutBtn.addEventListener('click',logout); if(pi) pi.addEventListener('keypress',e=>{ if(e.key==='Enter'){ login(); } }); if(emailInput) emailInput.addEventListener('keypress',e=>{ if(e.key==='Enter'){ pi.focus(); } }); document.querySelectorAll('.tester-season-btn').forEach(b=>b.addEventListener('click',e=>ss(e.target.dataset.season, e))); const broadcastBtn = document.getElementById('broadcastBtn'); if(broadcastBtn) broadcastBtn.addEventListener('click',bc); const uploadBtn = document.getElementById('uploadPhotoBtn'); if(uploadBtn) uploadBtn.addEventListener('click',uploadPhoto); m.addEventListener('click',e=>{ if(e.target===m){ c(); } }); supabaseClient.auth.onAuthStateChange((event,session)=>{ if(event==='SIGNED_IN'){ showMenu(); } else if(event==='SIGNED_OUT'){ showLogin(); } }); showLogin(); checkAuthState(); }
     return{init};
 })();
 
 // === TINKERSHATCH CUSTOM FEATURES ===
 function initCustomFeatures() {
     setTimeout(() => {
-        // --- 1. INVISIBLE SEASONAL BACKGROUND MUSIC ---
         const regularTracks = [
             { name: "Whispers of evening", url: "https://leewilliamsphotography-beep.github.io/Tinkershatch/background-music.mp3" },
             { name: "Let your spirit float", url: "https://leewilliamsphotography-beep.github.io/Tinkershatch/song2.mp3" },
@@ -1459,134 +333,51 @@ function initCustomFeatures() {
             { name: "Autumn Ambience", url: "https://leewilliamsphotography-beep.github.io/Tinkershatch/autumn1.mp3", startMonth: 9, endMonth: 10 },
             { name: "Autumn Ambience", url: "https://leewilliamsphotography-beep.github.io/Tinkershatch/halloween1.mp3", startMonth: 10, endMonth: 10 },
         ];
-
         const currentMonth = new Date().getMonth();
         let playlist = [...regularTracks]; 
-        seasonalTracks.forEach(track => {
-            if (currentMonth >= track.startMonth && currentMonth <= track.endMonth) {
-                playlist.push(track); 
-            }
-        });
+        seasonalTracks.forEach(track => { if (currentMonth >= track.startMonth && currentMonth <= track.endMonth) { playlist.push(track); } });
         let currentTrack = Math.floor(Math.random() * playlist.length);
-        
         const music = document.createElement('audio');
-        music.style.display = 'none';
-        music.volume = 0.4; 
-        music.setAttribute('playsinline', ''); 
-        document.body.appendChild(music);
-
-        function applyRandomPitch() {
-            const minPitch = 0.9715;
-            const maxPitch = 1.0293;
-            music.playbackRate = (Math.random() * (maxPitch - minPitch) + minPitch);
-        }
-
-        function loadTrack(index) {
-            currentTrack = (index + playlist.length) % playlist.length; 
-            music.src = playlist[currentTrack].url;
-            music.load();
-        }
-
-        music.addEventListener('ended', () => {
-            loadTrack(currentTrack + 1);
-            applyRandomPitch(); 
-            music.play().catch(e => console.log("Auto-advance blocked:", e));
-        });
-
+        music.style.display = 'none'; music.volume = 0.4; music.setAttribute('playsinline', ''); document.body.appendChild(music);
+        function applyRandomPitch() { const minPitch = 0.9715; const maxPitch = 1.0293; music.playbackRate = (Math.random() * (maxPitch - minPitch) + minPitch); }
+        function loadTrack(index) { currentTrack = (index + playlist.length) % playlist.length; music.src = playlist[currentTrack].url; music.load(); }
+        music.addEventListener('ended', () => { loadTrack(currentTrack + 1); applyRandomPitch(); music.play().catch(e => console.log("Auto-advance blocked:", e)); });
         let hasStarted = false;
-        function startMusic() {
-            if (hasStarted) return;
-            hasStarted = true;
-            loadTrack(currentTrack); 
-            applyRandomPitch(); 
-            music.play().then(() => {
-                window.removeEventListener('click', startMusic);
-                window.removeEventListener('touchstart', startMusic);
-                window.removeEventListener('touchend', startMusic);
-                window.removeEventListener('keydown', startMusic);
-            }).catch(e => {
-                hasStarted = false;
-            });
-        }
-        window.addEventListener('click', startMusic);
-        window.addEventListener('touchstart', startMusic);
-        window.addEventListener('touchend', startMusic);
-        window.addEventListener('keydown', startMusic);
+        function startMusic() { if (hasStarted) return; hasStarted = true; loadTrack(currentTrack); applyRandomPitch(); music.play().then(() => { window.removeEventListener('click', startMusic); window.removeEventListener('touchstart', startMusic); window.removeEventListener('touchend', startMusic); window.removeEventListener('keydown', startMusic); }).catch(e => { hasStarted = false; }); }
+        window.addEventListener('click', startMusic); window.addEventListener('touchstart', startMusic); window.addEventListener('touchend', startMusic); window.addEventListener('keydown', startMusic);
 
-        // --- 4. LIVE WEATHER EFFECTS ---
         const weatherFx = document.getElementById('weather-fx');
         let currentWeatherCondition = '';
-
         function spawnWeatherEffect(type, count) {
-            if(!weatherFx) return;
-            weatherFx.innerHTML = ''; 
+            if(!weatherFx) return; weatherFx.innerHTML = ''; 
             for (let i = 0; i < count; i++) {
-                const el = document.createElement('div');
-                el.className = `weather-el ${type}`;
-                if (type === 'rain') {
-                    el.style.left = Math.random() * 100 + 'vw';
-                    el.style.animationDuration = (Math.random() * 0.5 + 0.8) + 's'; 
-                    el.style.opacity = Math.random() * 0.2 + 0.1; 
-                } else if (type === 'snow') {
-                    el.style.left = Math.random() * 100 + 'vw';
-                    el.style.animationDuration = (Math.random() * 5 + 8) + 's'; 
-                    el.style.opacity = Math.random() * 0.4 + 0.2; 
-                    const size = Math.random() * 3 + 1; 
-                    el.style.width = size + 'px';
-                    el.style.height = size + 'px';
-                } else if (type === 'fog') {
-                    el.style.top = Math.random() * 100 + 'vh';
-                    el.style.animationDuration = (Math.random() * 20 + 20) + 's';
-                    el.style.animationDelay = Math.random() * -20 + 's';
-                    el.style.opacity = Math.random() * 0.2 + 0.1; 
-                } else if (type === 'sunbeam') {
-                    el.style.left = Math.random() * 100 + 'vw';
-                    el.style.animationDuration = (Math.random() * 8 + 8) + 's';
-                    el.style.animationDelay = Math.random() * -8 + 's';
-                    el.style.opacity = Math.random() * 0.2 + 0.1; 
-                }
+                const el = document.createElement('div'); el.className = `weather-el ${type}`;
+                if (type === 'rain') { el.style.left = Math.random() * 100 + 'vw'; el.style.animationDuration = (Math.random() * 0.5 + 0.8) + 's'; el.style.opacity = Math.random() * 0.2 + 0.1; } 
+                else if (type === 'snow') { el.style.left = Math.random() * 100 + 'vw'; el.style.animationDuration = (Math.random() * 5 + 8) + 's'; el.style.opacity = Math.random() * 0.4 + 0.2; const size = Math.random() * 3 + 1; el.style.width = size + 'px'; el.style.height = size + 'px'; } 
+                else if (type === 'fog') { el.style.top = Math.random() * 100 + 'vh'; el.style.animationDuration = (Math.random() * 20 + 20) + 's'; el.style.animationDelay = Math.random() * -20 + 's'; el.style.opacity = Math.random() * 0.2 + 0.1; } 
+                else if (type === 'sunbeam') { el.style.left = Math.random() * 100 + 'vw'; el.style.animationDuration = (Math.random() * 8 + 8) + 's'; el.style.animationDelay = Math.random() * -8 + 's'; el.style.opacity = Math.random() * 0.2 + 0.1; }
                 weatherFx.appendChild(el);
             }
         }
-
         async function updateWeatherFX() { 
             try {
                 const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=50.96&longitude=0.21&current=weather_code');
-                const data = await res.json();
-                const code = data.current.weather_code;
-                
+                const data = await res.json(); const code = data.current.weather_code;
                 let newCondition = 'clear';
-                if (code === 0) newCondition = 'clear';
-                else if (code >= 1 && code <= 3) newCondition = 'cloudy';
-                else if (code >= 45 && code <= 48) newCondition = 'fog';
-                else if (code >= 51 && code <= 67) newCondition = 'rain';
-                else if (code >= 71 && code <= 77) newCondition = 'snow';
-                else if (code >= 80 && code <= 82) newCondition = 'rain';
-                else if (code >= 85 && code <= 86) newCondition = 'snow';
-                
+                if (code === 0) newCondition = 'clear'; else if (code >= 1 && code <= 3) newCondition = 'cloudy'; else if (code >= 45 && code <= 48) newCondition = 'fog'; else if (code >= 51 && code <= 67) newCondition = 'rain'; else if (code >= 71 && code <= 77) newCondition = 'snow'; else if (code >= 80 && code <= 82) newCondition = 'rain'; else if (code >= 85 && code <= 86) newCondition = 'snow';
                 if (newCondition !== currentWeatherCondition) {
-                    currentWeatherCondition = newCondition;
-                    const screenWidth = window.innerWidth;
-                    const widthFactor = Math.max(1, screenWidth / 1000);
-
-                    let count = 0;
-                    let type = '';
-                    
+                    currentWeatherCondition = newCondition; const screenWidth = window.innerWidth; const widthFactor = Math.max(1, screenWidth / 1000);
+                    let count = 0; let type = '';
                     if (newCondition === 'rain') { type = 'rain'; count = Math.floor(15 * widthFactor); } 
                     else if (newCondition === 'snow') { type = 'snow'; count = Math.floor(10 * widthFactor); } 
                     else if (newCondition === 'fog') { type = 'fog'; count = Math.floor(4 * widthFactor); }  
                     else if (newCondition === 'clear') { type = 'sunbeam'; count = Math.floor(4 * widthFactor); }  
                     else if (newCondition === 'cloudy') { type = 'fog'; count = Math.floor(2 * widthFactor); }  
-
-                    count = Math.min(count, 100);
-                    spawnWeatherEffect(type, count);
+                    count = Math.min(count, 100); spawnWeatherEffect(type, count);
                 }
-            } catch (e) {
-                console.log("Weather FX offline or blocked.");
-            }
+            } catch (e) { console.log("Weather FX offline or blocked."); }
         }
-        updateWeatherFX();
-        setInterval(updateWeatherFX, 1800000);
+        updateWeatherFX(); setInterval(updateWeatherFX, 1800000);
     }, 1500);
 }
 
@@ -1603,20 +394,12 @@ function initializeAppModules() {
           function initReveal() {
             const items = document.querySelectorAll('.reveal');
             if (!items.length) return;
-            const reduceMotion =
-              window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
-              !('IntersectionObserver' in window);
-            if (reduceMotion) {
-              items.forEach(el => el.classList.add('is-visible'));
-              return;
-            }
+            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window);
+            if (reduceMotion) { items.forEach(el => el.classList.add('is-visible')); return; }
             items.forEach(el => el.classList.add('pre-reveal'));
             const observer = new IntersectionObserver(entries => {
               entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                  entry.target.classList.add('is-visible');
-                  observer.unobserve(entry.target);
-                }
+                if (entry.isIntersecting) { entry.target.classList.add('is-visible'); observer.unobserve(entry.target); }
               });
             }, { threshold: 0.15 });
             items.forEach(el => observer.observe(el));
@@ -1625,339 +408,32 @@ function initializeAppModules() {
           return { init };
         })();
         PolishModule.init();
-
         initCustomFeatures();
         console.log("Haven Portal Modules Loaded Successfully.");
     } catch (e) {
         console.error("FATAL ERROR DURING INITIALIZATION:", e);
-        const errDiv = document.getElementById('testerError');
-        if(errDiv) errDiv.textContent = "App Load Error: " + e.message;
     }
 }
 
-// Safe boot wrapper - waits for Supabase library before running app.js code
+// Safe boot wrapper
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if Supabase is loaded yet
     if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
-        // It's already loaded, initialize immediately
         supabaseClient = window.supabase.createClient('https://bsbwrvqevtoujfvcvvju.supabase.co', 'sb_publishable_c6IrevCpSel1njeKV0PhEA_Rbw2UdAx');
+        window.supabaseClient = supabaseClient;
         initializeAppModules();
     } else {
-        // Not loaded yet. Wait for it to load.
-        console.log("Waiting for Supabase library to load...");
         let attempts = 0;
         const supabaseWait = setInterval(function() {
             attempts++;
             if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
                 clearInterval(supabaseWait);
                 supabaseClient = window.supabase.createClient('https://bsbwrvqevtoujfvcvvju.supabase.co', 'sb_publishable_c6IrevCpSel1njeKV0PhEA_Rbw2UdAx');
-                console.log("Supabase library loaded. Initializing app...");
+                window.supabaseClient = supabaseClient;
                 initializeAppModules();
-            } else if (attempts > 100) { // 10 seconds max wait
+            } else if (attempts > 100) {
                 clearInterval(supabaseWait);
-                console.error("Supabase CDN failed to load after 10 seconds.");
-                const errDiv = document.getElementById('testerError');
-                if(errDiv) errDiv.textContent = "Network Error: Could not load login library. Check connection.";
+                console.error("Supabase CDN failed to load.");
             }
         }, 100);
     }
 });
-// ==========================================
-// ==========================================
-// ==========================================
-// HAVEN STAFF MESSENGER INTEGRATION
-// ==========================================
-(function() {
-    function initHavenMessenger() {
-        if (typeof window.supabaseClient === 'undefined') {
-            setTimeout(initHavenMessenger, 100);
-            return;
-        }
-        const sb = window.supabaseClient;
-        let mUser = null, mProfile = null, allUsers = [], mConversations = [], mActiveConv = null, mActiveMsgs = [], mActiveParts = [], mRealtimeChannel = null, mGroupSelected = new Set();
-        const AVATAR_COLORS = ['#7c5cff','#00e0ff','#ff4f8b','#facc15','#34d399','#fb7185','#22d3ee','#c084fc'];
-        let audioCtx;
-        
-        function getAudioCtx() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); return audioCtx; }
-        function playSound(type) {
-            if (type === 'none' || !type) return;
-            const ctx = getAudioCtx(); const now = ctx.currentTime;
-            if (type === 'chime') { const osc1 = ctx.createOscillator(), g1 = ctx.createGain(); osc1.connect(g1); g1.connect(ctx.destination); osc1.frequency.setValueAtTime(880, now); osc1.frequency.setValueAtTime(1320, now + 0.1); g1.gain.setValueAtTime(0.15, now); g1.gain.exponentialRampToValueAtTime(0.001, now + 0.3); osc1.start(now); osc1.stop(now + 0.3); }
-            else if (type === 'pop') { const osc = ctx.createOscillator(), g = ctx.createGain(); osc.type = 'sine'; osc.connect(g); g.connect(ctx.destination); osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(200, now + 0.1); g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.15); osc.start(now); osc.stop(now + 0.15); }
-            else if (type === 'ding') { const osc = ctx.createOscillator(), g = ctx.createGain(); osc.type = 'triangle'; osc.connect(g); g.connect(ctx.destination); osc.frequency.setValueAtTime(988, now); g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.4); osc.start(now); osc.stop(now + 0.4); }
-        }
-        function getInitials(name) { if (!name) return '?'; const p = name.trim().split(/\s+/); return p.length === 1 ? p[0].slice(0,2).toUpperCase() : (p[0][0] + p[p.length-1][0]).toUpperCase(); }
-        function colorForId(id) { if (!id) return AVATAR_COLORS[0]; let h = 0; for (let i = 0; i < id.length; i++) h = id.charCodeAt(i) + ((h << 5) - h); return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length]; }
-        function formatTime(iso) { if (!iso) return ''; const d = new Date(iso), now = new Date(); const diff = (now - d) / 1000; if (diff < 60) return 'just now'; if (diff < 3600) return Math.floor(diff/60) + 'm'; if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); return d.toLocaleDateString([], {month:'short', day:'numeric'}); }
-        function mToast(msg, type='') { const el = document.createElement('div'); el.className = 'toast ' + type; el.textContent = msg; document.getElementById('messenger-toast-container').appendChild(el); setTimeout(() => el.remove(), 3200); }
-        function escapeHtml(s) { if (!s) return ''; return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-        
-        function setTheme(theme) { const root = document.getElementById('messenger-root'); if(root) root.setAttribute('data-theme', theme); localStorage.setItem('haven_theme', theme); document.querySelectorAll('#messenger-root .theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === theme)); }
-        function setSound(sound) { localStorage.setItem('haven_notif_sound', sound); document.querySelectorAll('#messenger-root .sound-btn').forEach(b => b.classList.toggle('active', b.dataset.sound === sound)); }
-
-        function toggleSettingsDropdown(btn) {
-            const dd = document.getElementById('messenger-settings-dropdown');
-            if (dd.style.display === 'flex') { dd.style.display = 'none'; return; }
-            const rect = btn.getBoundingClientRect();
-            dd.style.top = (rect.bottom + 10) + 'px';
-            dd.style.left = (rect.right - 260) + 'px';
-            dd.style.display = 'flex';
-        }
-
-        document.getElementById('messenger-auth-settings-btn').addEventListener('click', (e) => { e.stopPropagation(); toggleSettingsDropdown(e.currentTarget); });
-        document.getElementById('messenger-app-settings-btn').addEventListener('click', (e) => { e.stopPropagation(); toggleSettingsDropdown(e.currentTarget); });
-        document.querySelectorAll('#messenger-root .theme-btn').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); setTheme(b.dataset.theme); }));
-        document.querySelectorAll('#messenger-root .sound-btn').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); const s = b.dataset.sound; setSound(s); playSound(s); }));
-
-        document.getElementById('messenger-auth-form').addEventListener('submit', async (e) => {
-            e.preventDefault(); getAudioCtx();
-            const email = document.getElementById('messenger-auth-email').value.trim();
-            const password = document.getElementById('messenger-auth-password').value;
-            const errEl = document.getElementById('messenger-auth-error');
-            const submitBtn = document.getElementById('messenger-auth-submit');
-            errEl.style.display = 'none'; submitBtn.disabled = true; submitBtn.innerHTML = '<span class="spinner"></span>';
-            try {
-                const { data, error } = await sb.auth.signInWithPassword({ email, password });
-                if (error) throw error;
-                if (data.session) await handleAuthSuccess(data.session);
-            } catch (err) { errEl.textContent = err.message || 'Auth failed'; errEl.style.display = 'block'; }
-            finally { submitBtn.disabled = false; submitBtn.textContent = 'Sign In'; }
-        });
-
-        document.getElementById('messenger-logout-btn').addEventListener('click', async () => { await sb.auth.signOut(); });
-
-        async function handleAuthSuccess(session) {
-            try {
-                if (!session || !session.user) { showAuth(); return; }
-                mUser = session.user; 
-                await loadMyProfile(); 
-                
-                if (!mProfile) {
-                    mProfile = { id: mUser.id, email: mUser.email, full_name: mUser.user_metadata?.full_name || mUser.email.split('@')[0], username: mUser.user_metadata?.username || mUser.email.split('@')[0], avatar_color: colorForId(mUser.id) };
-                }
-                
-                showApp(); 
-                await Promise.all([loadUsers(), loadConversations()]); 
-                subscribeToConversations();
-            } catch (err) {
-                console.error("Messenger Crash on Login:", err);
-                // If it crashes, force show the app anyway so they aren't stuck on login
-                if (mUser) showApp(); else showAuth();
-            }
-        }
-        
-        async function loadMyProfile() {
-            const { data, error } = await sb.from('profiles').select('*').eq('id', mUser.id).maybeSingle();
-            if (error || !data) {
-                mProfile = { id: mUser.id, email: mUser.email, full_name: mUser.user_metadata?.full_name || mUser.email.split('@')[0], username: mUser.user_metadata?.username || mUser.email.split('@')[0], avatar_color: colorForId(mUser.id) };
-                return;
-            }
-            mProfile = data;
-        }
-        
-        function showAuth() { document.getElementById('messenger-auth-view').style.display = 'flex'; document.getElementById('messenger-app-view').style.display = 'none'; }
-        function showApp() {
-            document.getElementById('messenger-auth-view').style.display = 'none';
-            document.getElementById('messenger-app-view').style.display = 'block';
-            document.getElementById('messenger-me-name').textContent = mProfile?.full_name || mProfile?.username || 'User';
-            document.getElementById('messenger-me-email').textContent = mProfile?.email || '';
-            const av = document.getElementById('messenger-me-avatar');
-            av.textContent = getInitials(mProfile?.full_name || mProfile?.username);
-            av.style.background = mProfile?.avatar_color || colorForId(mProfile?.id);
-        }
-        async function loadUsers() { const { data, error } = await sb.from('profiles').select('*').neq('id', mUser.id).order('full_name', { ascending: true }); if (error) { console.error(error); return; } allUsers = data || []; renderUserDropdown(''); }
-        function renderUserDropdown(query) {
-            const list = document.getElementById('messenger-user-list'); const empty = document.getElementById('messenger-user-list-empty');
-            const q = query.toLowerCase(); const filtered = allUsers.filter(u => { const n = (u.full_name || '').toLowerCase(), un = (u.username || '').toLowerCase(); return !q || n.includes(q) || un.includes(q); });
-            if (filtered.length === 0) { list.innerHTML = ''; empty.classList.remove('hidden'); return; }
-            empty.classList.add('hidden');
-            list.innerHTML = filtered.map(u => `<div class="user-row" data-user-id="${u.id}"><div class="avatar avatar-sm" style="background:${u.avatar_color || colorForId(u.id)}">${getInitials(u.full_name || u.username)}</div><div class="flex-1 min-w-0"><div class="text-sm font-semibold truncate">${escapeHtml(u.full_name || u.username)}</div></div></div>`).join('');
-            list.querySelectorAll('.user-row').forEach(row => row.addEventListener('click', () => { startDirectMessage(row.dataset.userId); document.getElementById('messenger-user-dropdown').style.display = 'none'; document.getElementById('messenger-user-search').value = ''; }));
-        }
-        document.getElementById('messenger-new-msg-btn').addEventListener('click', (e) => { e.stopPropagation(); const dd = document.getElementById('messenger-user-dropdown'); dd.style.display = dd.style.display === 'flex' ? 'none' : 'flex'; if (dd.style.display === 'flex') setTimeout(() => document.getElementById('messenger-user-search').focus(), 50); });
-        document.getElementById('messenger-user-search').addEventListener('input', (e) => renderUserDropdown(e.target.value));
-        document.getElementById('messenger-chat-menu-btn').addEventListener('click', (e) => { e.stopPropagation(); const dd = document.getElementById('messenger-chat-menu-dropdown'); dd.style.display = dd.style.display === 'flex' ? 'none' : 'flex'; });
-        
-        document.getElementById('messenger-delete-conv-btn').addEventListener('click', async () => {
-            if (!mActiveConv || mActiveConv.created_by !== mUser.id) { mToast('Only creator can delete', 'error'); return; }
-            if (confirm('Delete this entire conversation?')) {
-                const { error } = await sb.from('conversations').delete().eq('id', mActiveConv.id);
-                if (error) mToast('Failed', 'error'); else { mConversations = mConversations.filter(c => c.id !== mActiveConv.id); mActiveConv = null; mActiveMsgs = []; document.getElementById('messenger-chat-menu-dropdown').style.display = 'none'; document.getElementById('messenger-chat-menu-btn').style.display = 'none'; document.getElementById('messenger-chat-empty').style.display = 'flex'; document.getElementById('messenger-message-input-area').style.display = 'none'; document.getElementById('messenger-messages-container').innerHTML = ''; document.getElementById('messenger-chat-header-content').innerHTML = ''; renderConversations(); mToast('Deleted', 'success'); }
-            }
-        });
-
-        async function loadConversations() {
-            const { data: parts, error: pe } = await sb.from('conversation_participants').select('conversation_id').eq('user_id', mUser.id);
-            if (pe) return; if (!parts || parts.length === 0) { mConversations = []; renderConversations(); return; }
-            const ids = parts.map(p => p.conversation_id);
-            const { data: convos, error: ce } = await sb.from('conversations').select('*').in('id', ids).order('created_at', { ascending: false });
-            if (ce) return;
-            const enriched = [];
-            for (const c of convos) {
-                const { data: cp } = await sb.from('conversation_participants').select('user_id, profiles(*)').eq('conversation_id', c.id);
-                const participants = (cp || []).map(p => p.profiles).filter(Boolean);
-                const { data: lastMsg } = await sb.from('messages').select('*').eq('conversation_id', c.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
-                enriched.push({ ...c, participants, lastMessage: lastMsg });
-            }
-            enriched.sort((a, b) => new Date(b.lastMessage?.created_at || b.created_at) - new Date(a.lastMessage?.created_at || a.created_at));
-            mConversations = enriched; renderConversations();
-        }
-        
-        function getConvDisplay(conv) {
-            if (conv.type === 'group') return { name: conv.name || 'Unnamed Group', isGroup: true };
-            const other = conv.participants.find(p => p.id !== mUser.id);
-            return { name: other ? (other.full_name || other.username || other.email) : 'Unknown', avatar: other ? (other.avatar_color || colorForId(other.id)) : colorForId(conv.id), initials: other ? getInitials(other.full_name || other.username) : '?', isGroup: false, other };
-        }
-        
-        function renderConversations() {
-            const list = document.getElementById('messenger-conv-list'); const empty = document.getElementById('messenger-conv-empty');
-            if (mConversations.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; return; }
-            empty.style.display = 'none';
-            list.innerHTML = mConversations.map(c => {
-                const info = getConvDisplay(c); const isActive = mActiveConv && mActiveConv.id === c.id;
-                const lastPreview = c.lastMessage ? escapeHtml(c.lastMessage.content.slice(0, 40)) : 'No messages yet';
-                const avatarHtml = info.isGroup ? `<div class="avatar">${c.participants.length}</div>` : `<div class="avatar" style="background:${info.avatar}">${info.initials}</div>`;
-                return `<div class="conv-item ${isActive ? 'active' : ''}" data-conv-id="${c.id}">${avatarHtml}<div class="flex-1 min-w-0"><div class="text-sm font-semibold truncate">${escapeHtml(info.name)}</div><div class="text-xs truncate mt-0.5" style="color:var(--muted)">${lastPreview}</div></div></div>`;
-            }).join('');
-            list.querySelectorAll('.conv-item').forEach(item => item.addEventListener('click', () => { const conv = mConversations.find(c => c.id === item.dataset.convId); openConversation(conv); document.getElementById('messenger-sidebar').classList.remove('open'); }));
-        }
-        
-        async function openConversation(conv) {
-            mActiveConv = conv; mActiveMsgs = []; mActiveParts = conv.participants || []; renderConversations(); renderChatHeader();
-            document.getElementById('messenger-chat-empty').style.display = 'none'; document.getElementById('messenger-message-input-area').style.display = 'block';
-            document.getElementById('messenger-messages-container').innerHTML = '<div class="flex items-center justify-center py-10"><div class="spinner" style="color:var(--accent)"></div></div>';
-            await loadMessages(conv.id); subscribeToMessages(conv.id);
-            document.getElementById('messenger-chat-menu-btn').style.display = (mActiveConv.created_by === mUser.id) ? 'flex' : 'none';
-        }
-        
-        function renderChatHeader() {
-            if (!mActiveConv) return; const info = getConvDisplay(mActiveConv); const header = document.getElementById('messenger-chat-header-content');
-            if (info.isGroup) { header.innerHTML = `<div class="flex items-center gap-3"><div class="avatar avatar-sm">${mActiveParts.length}</div><div class="min-w-0"><div class="font-bold truncate font-display text-lg">${escapeHtml(info.name)}</div><div class="text-xs truncate" style="color:var(--muted)">${mActiveParts.length} members</div></div></div>`; }
-            else { header.innerHTML = `<div class="flex items-center gap-3"><div class="avatar avatar-sm" style="background:${info.avatar}">${info.initials}</div><div class="min-w-0"><div class="font-bold truncate font-display text-lg">${escapeHtml(info.name)}</div></div></div>`; }
-        }
-        
-        async function loadMessages(convId) {
-            const { data, error } = await sb.from('messages').select('*, sender:profiles(*)').eq('conversation_id', convId).order('created_at', { ascending: true }).limit(200);
-            if (error) return; mActiveMsgs = data || []; renderMessages();
-        }
-        
-        function renderMessages() {
-            const container = document.getElementById('messenger-messages-container');
-            if (mActiveMsgs.length === 0) { container.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-center"><p class="text-sm font-semibold">No messages yet</p></div>`; return; }
-            const isGroup = mActiveConv?.type === 'group'; let html = ''; let lastSender = null, lastDate = null;
-            mActiveMsgs.forEach(m => {
-                const isSent = m.sender_id === mUser.id; const sender = m.sender || {};
-                const showSenderHeader = isGroup && !isSent && m.sender_id !== lastSender;
-                const msgDate = new Date(m.created_at).toDateString(); const showDateDivider = msgDate !== lastDate; lastDate = msgDate; lastSender = m.sender_id;
-                if (showDateDivider) { html += `<div class="flex items-center my-6"><div class="flex-1 h-px" style="background:var(--border)"></div><div class="px-4 text-[10px] uppercase font-bold" style="color:var(--muted-2)">${new Date(m.created_at).toLocaleDateString([], {month:'short',day:'numeric'})}</div><div class="flex-1 h-px" style="background:var(--border)"></div></div>`; }
-                if (showSenderHeader) { html += `<div class="flex items-center gap-2 mt-4 mb-2 px-1"><div class="avatar avatar-sm" style="background:${sender.avatar_color || colorForId(sender.id)}">${getInitials(sender.full_name || sender.username)}</div><div class="text-xs font-bold">${escapeHtml(sender.full_name || sender.username)}</div></div>`; }
-                html += `<div class="msg-row ${isSent ? 'sent' : 'received'}">${!isSent && !isGroup ? `<div class="avatar avatar-sm" style="background:${sender.avatar_color || colorForId(sender.id)}">${getInitials(sender.full_name || sender.username)}</div>` : ''}<div class="msg-bubble ${isSent ? 'sent' : 'received'}">${escapeHtml(m.content)}</div></div><div class="msg-meta" style="text-align:${isSent ? 'right' : 'left'};">${formatTime(m.created_at)}</div>`;
-            });
-            container.innerHTML = html; requestAnimationFrame(() => { container.scrollTop = container.scrollHeight; });
-        }
-        
-        const msgInput = document.getElementById('messenger-msg-input');
-        msgInput.addEventListener('input', () => { msgInput.style.height = 'auto'; msgInput.style.height = Math.min(msgInput.scrollHeight, 120) + 'px'; });
-        msgInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('messenger-msg-form').requestSubmit(); } });
-        document.getElementById('messenger-msg-form').addEventListener('submit', async (e) => {
-            e.preventDefault(); const content = msgInput.value.trim(); if (!content || !mActiveConv) return; msgInput.value = ''; msgInput.style.height = 'auto';
-            const { error } = await sb.from('messages').insert({ conversation_id: mActiveConv.id, sender_id: mUser.id, content });
-            if (error) mToast('Failed to send', 'error');
-        });
-        
-        async function startDirectMessage(otherUserId) {
-            const { data: myParts } = await sb.from('conversation_participants').select('conversation_id, conversations!inner(*)').eq('user_id', mUser.id).eq('conversations.type', 'direct');
-            if (myParts) {
-                for (const p of myParts) {
-                    const { data: theirPart } = await sb.from('conversation_participants').select('user_id').eq('conversation_id', p.conversation_id).eq('user_id', otherUserId).maybeSingle();
-                    if (theirPart) { const conv = mConversations.find(c => c.id === p.conversation_id); if (conv) { openConversation(conv); return; } }
-                }
-            }
-            const { data: newConv, error } = await sb.from('conversations').insert({ type: 'direct', created_by: mUser.id }).select().single();
-            if (error) { mToast('Failed', 'error'); return; }
-            await sb.from('conversation_participants').insert([{ conversation_id: newConv.id, user_id: mUser.id }, { conversation_id: newConv.id, user_id: otherUserId }]);
-            const otherUser = allUsers.find(u => u.id === otherUserId);
-            const convWith = { ...newConv, participants: [mProfile, otherUser].filter(Boolean), lastMessage: null };
-            mConversations.unshift(convWith); renderConversations(); openConversation(convWith); mToast('Conversation started', 'success');
-        }
-        
-        document.getElementById('messenger-new-group-btn').addEventListener('click', () => {
-            mGroupSelected.clear(); document.getElementById('messenger-group-name').value = ''; document.getElementById('messenger-group-search').value = ''; document.getElementById('messenger-group-error').style.display = 'none'; renderGroupUserList(''); renderGroupSelected(); document.getElementById('messenger-group-modal').style.display = 'flex';
-        });
-        document.getElementById('messenger-group-search').addEventListener('input', (e) => renderGroupUserList(e.target.value));
-        
-        function renderGroupUserList(query) {
-            const list = document.getElementById('messenger-group-user-list'); const q = query.toLowerCase();
-            const filtered = allUsers.filter(u => { const n = (u.full_name || '').toLowerCase(); return !q || n.includes(q); });
-            if (filtered.length === 0) { list.innerHTML = `<div class="p-4 text-center text-xs" style="color:var(--muted)">No staff found</div>`; return; }
-            list.innerHTML = filtered.map(u => `<div class="user-row" data-user-id="${u.id}"><div class="checkbox ${mGroupSelected.has(u.id) ? 'checked' : ''}"></div><div class="avatar avatar-sm" style="background:${u.avatar_color || colorForId(u.id)}">${getInitials(u.full_name || u.username)}</div><div class="flex-1 min-w-0"><div class="text-sm font-semibold truncate">${escapeHtml(u.full_name || u.username)}</div></div></div>`).join('');
-            list.querySelectorAll('.user-row').forEach(row => row.addEventListener('click', () => { const id = row.dataset.userId; if (mGroupSelected.has(id)) mGroupSelected.delete(id); else mGroupSelected.add(id); renderGroupUserList(document.getElementById('messenger-group-search').value); renderGroupSelected(); }));
-        }
-        function renderGroupSelected() {
-            const container = document.getElementById('messenger-group-selected');
-            if (mGroupSelected.size === 0) { container.innerHTML = ''; container.style.display = 'none'; return; }
-            container.style.display = 'flex';
-            container.innerHTML = [...mGroupSelected].map(id => { const u = allUsers.find(x => x.id === id); if (!u) return ''; return `<div class="chip"><div class="avatar avatar-sm" style="width:22px;height:22px;font-size:9px;border-radius:6px;background:${u.avatar_color || colorForId(u.id)}">${getInitials(u.full_name || u.username)}</div>${escapeHtml(u.full_name || u.username)}<button data-remove="${id}" style="color:var(--accent);background:none;border:none;cursor:pointer;font-size:16px;line-height:1;margin-left:4px;">×</button></div>`; }).join('');
-            container.querySelectorAll('[data-remove]').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); mGroupSelected.delete(btn.dataset.remove); renderGroupUserList(document.getElementById('messenger-group-search').value); renderGroupSelected(); }));
-        }
-        document.getElementById('messenger-create-group-btn').addEventListener('click', async () => {
-            const name = document.getElementById('messenger-group-name').value.trim(); const errEl = document.getElementById('messenger-group-error'); errEl.style.display = 'none';
-            if (!name) { errEl.textContent = 'Please enter a group name'; errEl.style.display = 'block'; return; }
-            if (mGroupSelected.size === 0) { errEl.textContent = 'Please select at least one member'; errEl.style.display = 'block'; return; }
-            const btn = document.getElementById('messenger-create-group-btn'); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
-            try {
-                const { data: newConv, error } = await sb.from('conversations').insert({ name, type: 'group', created_by: mUser.id }).select().single();
-                if (error) throw error;
-                const inserts = [{ conversation_id: newConv.id, user_id: mUser.id }]; mGroupSelected.forEach(uid => inserts.push({ conversation_id: newConv.id, user_id: uid }));
-                const { error: pe } = await sb.from('conversation_participants').insert(inserts); if (pe) throw pe;
-                const participants = [mProfile, ...allUsers.filter(u => mGroupSelected.has(u.id))];
-                const convWith = { ...newConv, participants, lastMessage: null };
-                mConversations.unshift(convWith); renderConversations(); openConversation(convWith); document.getElementById('messenger-group-modal').style.display = 'none'; mToast('Group created', 'success');
-            } catch (err) { errEl.textContent = err.message || 'Failed'; errEl.style.display = 'block'; }
-            finally { btn.disabled = false; btn.textContent = 'Create Group'; }
-        });
-        
-        function subscribeToMessages(convId) {
-            if (mRealtimeChannel) { sb.removeChannel(mRealtimeChannel); mRealtimeChannel = null; }
-            mRealtimeChannel = sb.channel('messages-' + convId)
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${convId}` }, async (payload) => {
-                    const { data: sender } = await sb.from('profiles').select('*').eq('id', payload.new.sender_id).maybeSingle();
-                    const msg = { ...payload.new, sender: sender };
-                    if (mActiveMsgs.some(m => m.id === msg.id)) return;
-                    mActiveMsgs.push(msg); renderMessages();
-                    if (mActiveConv && mActiveConv.id === convId) { mActiveConv.lastMessage = msg; renderConversations(); }
-                    if (payload.new.sender_id !== mUser.id) { const sound = localStorage.getItem('haven_notif_sound') || 'none'; playSound(sound); }
-                })
-                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${convId}` }, (payload) => { mActiveMsgs = mActiveMsgs.filter(m => m.id !== payload.old.id); renderMessages(); })
-                .subscribe();
-        }
-        
-        function subscribeToConversations() {
-            sb.channel('conversations')
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversation_participants' }, async (payload) => { if (payload.new.user_id === mUser.id) await loadConversations(); })
-                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
-                    const conv = mConversations.find(c => c.id === payload.new.conversation_id);
-                    if (conv && (!mActiveConv || mActiveConv.id !== conv.id)) { conv.lastMessage = payload.new; mConversations.sort((a, b) => new Date(b.lastMessage?.created_at || b.created_at) - new Date(a.lastMessage?.created_at || a.created_at)); renderConversations(); }
-                })
-                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'conversations' }, (payload) => {
-                    mConversations = mConversations.filter(c => c.id !== payload.old.id);
-                    if (mActiveConv && mActiveConv.id === payload.old.id) { mActiveConv = null; mActiveMsgs = []; document.getElementById('messenger-chat-menu-btn').style.display = 'none'; document.getElementById('messenger-chat-empty').style.display = 'flex'; document.getElementById('messenger-message-input-area').style.display = 'none'; document.getElementById('messenger-messages-container').innerHTML = ''; document.getElementById('messenger-chat-header-content').innerHTML = ''; }
-                    renderConversations();
-                })
-                .subscribe();
-        }
-        
-        document.getElementById('messenger-mobile-menu').addEventListener('click', () => document.getElementById('messenger-sidebar').classList.add('open'));
-        document.getElementById('messenger-mobile-close').addEventListener('click', () => document.getElementById('messenger-sidebar').classList.remove('open'));
-
-        sb.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN' && session) { handleAuthSuccess(session); }
-            if (event === 'SIGNED_OUT') { mUser = null; mProfile = null; if (mRealtimeChannel) { sb.removeChannel(mRealtimeChannel); mRealtimeChannel = null; } showAuth(); }
-        });
-        
-        const theme = localStorage.getItem('haven_theme') || 'midnight'; setTheme(theme);
-        const sound = localStorage.getItem('haven_notif_sound') || 'none'; setSound(sound);
-        sb.auth.getSession().then(({ data: { session } }) => { if (session) handleAuthSuccess(session); else showAuth(); });
-    }
-    initHavenMessenger();
-})();
