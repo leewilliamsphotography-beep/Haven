@@ -345,7 +345,11 @@ function initCustomFeatures() {
         let hasStarted = false;
         function startMusic() { if (hasStarted) return; hasStarted = true; loadTrack(currentTrack); applyRandomPitch(); music.play().then(() => { window.removeEventListener('click', startMusic); window.removeEventListener('touchstart', startMusic); window.removeEventListener('touchend', startMusic); window.removeEventListener('keydown', startMusic); }).catch(e => { hasStarted = false; }); }
         window.addEventListener('click', startMusic); window.addEventListener('touchstart', startMusic); window.addEventListener('touchend', startMusic); window.addEventListener('keydown', startMusic);
-
+        // Comment these out so they don't conflict with the sidebar ambient1.mp3
+        // window.addEventListener('click', startMusic);
+        // window.addEventListener('touchstart', startMusic);
+        // window.addEventListener('touchend', startMusic);
+        // window.addEventListener('keydown', startMusic);
         const weatherFx = document.getElementById('weather-fx');
         let currentWeatherCondition = '';
         function spawnWeatherEffect(type, count) {

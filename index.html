@@ -275,11 +275,16 @@
 
                 <div class="sidebar-spacer"></div>
                 
-                <button id="musicToggleBtn" class="tester-tab-btn" style="border-top: 1px solid var(--border-soft); border-radius: 0; margin-bottom: 8px;">
-                    <svg id="musicIconPlay" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-                    <svg id="musicIconPause" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
-                    <span id="musicToggleText">Play Ambient Music</span>
-                </button>
+               <button id="musicToggleBtn" class="tester-tab-btn" style="border-top: 1px solid var(--border-soft); border-radius: 0; margin-bottom: 8px;">
+    <svg id="musicIconPlay" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+    <svg id="musicIconPause" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+    <span id="musicToggleText">Play Ambient Music</span>
+</button>
+
+<!-- MAKE SURE THIS IS HERE -->
+<audio id="havenAmbientAudio" loop>
+    <source src="ambient1.mp3" type="audio/mpeg">
+</audio>
                 
                 <button id="themeQuickToggle" class="tester-tab-btn" style="border-radius: 0;">
                     <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -660,14 +665,31 @@
     setupEmptyStateObserver('adminCommunityContainer', '🏘️ No community spotlights yet.');
     setupEmptyStateObserver('adminCelebContainer', '🎉 No upcoming celebrations.');
 
-    // 12. Music Toggle
-    const musicToggleBtn = document.getElementById('musicToggleBtn'); const bgMusic = document.getElementById('havenAmbientAudio'); const musicIconPlay = document.getElementById('musicIconPlay'); const musicIconPause = document.getElementById('musicIconPause'); const musicToggleText = document.getElementById('musicToggleText');
+       // 12. Music Toggle (Using ambient1.mp3)
+    const musicToggleBtn = document.getElementById('musicToggleBtn'); 
+    const bgMusic = document.getElementById('havenAmbientAudio'); 
+    const musicIconPlay = document.getElementById('musicIconPlay'); 
+    const musicIconPause = document.getElementById('musicIconPause'); 
+    const musicToggleText = document.getElementById('musicToggleText');
+
     if (musicToggleBtn && bgMusic) {
         musicToggleBtn.addEventListener('click', function() {
             if (bgMusic.paused) {
-                document.querySelectorAll('audio').forEach(audio => { if (audio.id !== 'havenAmbientAudio') { audio.pause(); audio.currentTime = 0; } });
-                bgMusic.play().then(() => { musicIconPlay.style.display = 'none'; musicIconPause.style.display = 'block'; musicToggleText.textContent = 'Pause Ambient Music'; }).catch(err => { showToast('Could not play audio.'); });
-            } else { bgMusic.pause(); musicIconPlay.style.display = 'block'; musicIconPause.style.display = 'none'; musicToggleText.textContent = 'Play Ambient Music'; }
+                // Attempt to play the audio file
+                bgMusic.play().then(() => {
+                    musicIconPlay.style.display = 'none';
+                    musicIconPause.style.display = 'block';
+                    musicToggleText.textContent = 'Pause Ambient Music';
+                }).catch(err => {
+                    showToast('Could not play audio. Ensure ambient1.mp3 is uploaded next to index.html.');
+                    console.error('Audio playback failed:', err);
+                });
+            } else { 
+                bgMusic.pause(); 
+                musicIconPlay.style.display = 'block'; 
+                musicIconPause.style.display = 'none'; 
+                musicToggleText.textContent = 'Play Ambient Music'; 
+            }
         });
     }
 
