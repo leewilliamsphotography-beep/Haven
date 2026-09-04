@@ -70,6 +70,24 @@
         --accent-soft: rgba(194, 104, 60, 0.1);
         --shadow: 0 10px 20px -5px rgba(59, 42, 30, 0.06), 0 4px 8px -2px rgba(59, 42, 30, 0.03);
     }
+        body.staff-ocean {
+        --bg: #0B132B; --surface: #1C2541; --surface-2: #293D5C; --surface-3: #3A506B;
+        --border: #293D5C; --border-soft: #1C2541; --fg: #E0FBFC; --muted: #8FBFBF; --muted-2: #6A8A8A;
+        --accent: #5BC0BE; --accent-hover: #3AA8A6; --accent-soft: rgba(91, 192, 190, 0.1);
+        --danger: #EF4444; --shadow: 0 10px 20px -5px rgba(0,0,0,0.4);
+    }
+    body.staff-forest {
+        --bg: #1A2421; --surface: #2B3A34; --surface-2: #3D5147; --surface-3: #4F665A;
+        --border: #3D5147; --border-soft: #2B3A34; --fg: #E8F0E6; --muted: #A0B4A8; --muted-2: #7A8E82;
+        --accent: #88B04B; --accent-hover: #6E9536; --accent-soft: rgba(136, 176, 75, 0.1);
+        --danger: #EF4444; --shadow: 0 10px 20px -5px rgba(0,0,0,0.4);
+    }
+    body.staff-sunset {
+        --bg: #2D1B2D; --surface: #3E2731; --surface-2: #51314A; --surface-3: #6B3F5C;
+        --border: #51314A; --border-soft: #3E2731; --fg: #FCE4D6; --muted: #C0A0A0; --muted-2: #907070;
+        --accent: #E8743B; --accent-hover: #C85A25; --accent-soft: rgba(232, 116, 59, 0.1);
+        --danger: #EF4444; --shadow: 0 10px 20px -5px rgba(0,0,0,0.4);
+    }
 
     /* === Native App Behavior Fixes === */
     html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; overscroll-behavior: none; }
@@ -884,21 +902,32 @@
             <div id="tab-settings" class="tester-tab-content">
                 <div class="admin-header"><h3>Haven Portal Appearance</h3><p>Choose a theme for your staff dashboard.</p></div>
                 <div class="admin-card">
-                    <div class="flex gap-2 mb-8">
-                        <div class="theme-card staff-theme-btn" data-theme="staff-dark">
-                            <div class="theme-swatch" style="background: #141821; border-color: #3DDDC8;"></div>
-                            <span>Haven Midnight</span>
-                        </div>
-                        <div class="theme-card staff-theme-btn" data-theme="staff-light">
-                            <div class="theme-swatch" style="background: #FFFFFF; border-color: #0E8C7A;"></div>
-                            <span>Haven Daylight</span>
-                        </div>
-                        <div class="theme-card staff-theme-btn" data-theme="staff-warm">
-                            <div class="theme-swatch" style="background: #FBF7F0; border-color: #C2683C;"></div>
-                            <span>Haven Hearth</span>
-                        </div>
-                    </div>
-                </div>
+                    <div class="flex gap-2 mb-8" style="flex-wrap: wrap;">
+    <div class="theme-card staff-theme-btn" data-theme="staff-dark" style="flex: 1 1 30%;">
+        <div class="theme-swatch" style="background: #141821; border-color: #3DDDC8;"></div>
+        <span>Haven Midnight</span>
+    </div>
+    <div class="theme-card staff-theme-btn" data-theme="staff-light" style="flex: 1 1 30%;">
+        <div class="theme-swatch" style="background: #FFFFFF; border-color: #0E8C7A;"></div>
+        <span>Haven Daylight</span>
+    </div>
+    <div class="theme-card staff-theme-btn" data-theme="staff-warm" style="flex: 1 1 30%;">
+        <div class="theme-swatch" style="background: #FBF7F0; border-color: #C2683C;"></div>
+        <span>Haven Hearth</span>
+    </div>
+    <div class="theme-card staff-theme-btn" data-theme="staff-ocean" style="flex: 1 1 30%;">
+        <div class="theme-swatch" style="background: #1C2541; border-color: #5BC0BE;"></div>
+        <span>Deep Ocean</span>
+    </div>
+    <div class="theme-card staff-theme-btn" data-theme="staff-forest" style="flex: 1 1 30%;">
+        <div class="theme-swatch" style="background: #2B3A34; border-color: #88B04B;"></div>
+        <span>Forest</span>
+    </div>
+    <div class="theme-card staff-theme-btn" data-theme="staff-sunset" style="flex: 1 1 30%;">
+        <div class="theme-swatch" style="background: #3E2731; border-color: #E8743B;"></div>
+        <span>Sunset</span>
+    </div>
+</div>
 
                 <div class="admin-header" style="margin-top: 32px;"><h3>Seasonal Themes (Live Site)</h3><p>Change the season on the main website.</p></div>
                 <div class="admin-card" id="adminOnlyThemes">
@@ -1284,6 +1313,61 @@
     document.querySelectorAll('.tester-season-btn').forEach(btn => {
         btn.addEventListener('click', initStaffSeasonFX);
     });
+</script>
+<script>
+// === GENERATIVE ARPEGGIO THEME MUSIC ===
+let arpAudioCtx, arpInterval, arpPlaying = false;
+function playArpeggio() {
+    if (!arpAudioCtx) arpAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (arpAudioCtx.state === 'suspended') arpAudioCtx.resume();
+
+    // A soft Cmaj7 arpeggio (C4, E4, G4, B4, C5)
+    const notes = [261.63, 329.63, 392.00, 493.88, 523.25];
+    let i = 0;
+
+    function playNote() {
+        const osc = arpAudioCtx.createOscillator();
+        const gain = arpAudioCtx.createGain();
+        osc.type = 'sine'; // Soft sine wave
+        osc.frequency.value = notes[i % notes.length];
+        
+        const now = arpAudioCtx.currentTime;
+        gain.gain.setValueAtTime(0, now);
+        gain.gain.linearRampToValueAtTime(0.08, now + 0.05); // Gentle fade in
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5); // Long fade out
+        
+        osc.connect(gain);
+        gain.connect(arpAudioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 1.5);
+        
+        i++;
+    }
+    playNote();
+    arpInterval = setInterval(playNote, 800); // Play a note every 800ms
+}
+
+// Hook into the existing music button in the sidebar
+document.addEventListener('DOMContentLoaded', function() {
+    const musicBtn = document.getElementById('musicToggleBtn');
+    if (musicBtn) {
+        musicBtn.addEventListener('click', function() {
+            if (arpPlaying) {
+                clearInterval(arpInterval);
+                arpPlaying = false;
+                document.getElementById('musicIconPlay').style.display = 'block';
+                document.getElementById('musicIconPause').style.display = 'none';
+                document.getElementById('musicToggleText').textContent = 'Play Ambient Music';
+            } else {
+                playArpeggio();
+                arpPlaying = true;
+                document.getElementById('musicIconPlay').style.display = 'none';
+                document.getElementById('musicIconPause').style.display = 'block';
+                document.getElementById('musicToggleText').textContent = 'Pause Ambient Music';
+            }
+        });
+    }
+});
 </script>
 </body>
 </html>

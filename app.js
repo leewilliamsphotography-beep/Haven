@@ -1951,10 +1951,59 @@ document.addEventListener('DOMContentLoaded', function() {
             if (event === 'SIGNED_OUT') { mUser = null; mProfile = null; if (mRealtimeChannel) { sb.removeChannel(mRealtimeChannel); mRealtimeChannel = null; } showAuth(); }
         });
         
-        // Initial Boot
-        const theme = localStorage.getItem('haven_theme') || 'midnight'; setTheme(theme);
-        const sound = localStorage.getItem('haven_notif_sound') || 'none'; setSound(sound);
-        sb.auth.getSession().then(({ data: { session } }) => { if (session) handleAuthSuccess(session); else showAuth(); });
+// ==========================================
+// BULLETPROOF INITIALIZATION SEQUENCE
+// ==========================================
+function initializeAppModules() {
+    console.log("Initializing Haven Portal Modules...");
+    try {
+        MessagesModule.init();
+        LayoutModule.init();SplashModule.init();SideNavModule.init();AccessibilityModule.init();QuickJumpModule.init();TimeModule.init();ToastModule.init();ReadAloudModule.init();AmbientAudioModule.init();SensoryModule.init();BackToTopModule.init();SeasonalModule.init();FaviconModule.init();ThemeModule.init();PaletteModule.init();FontSizeModule.init();DyslexiaModule.init();HapticModule.init();BionicModule.init();NextSectionModule.init();RevealModule.init();MoodModule.init();LightboxModule.init();FooterA11yModule.init();ProgressModule.init();SummerEffectsModule.init();AuthModule.init();TesterModule.init();DatabaseModule.init();FilmNightModule.init();ParallaxModule.init();EventsModule.init();WilfModule.init();MenuModule.init();CommunityModule.init();EnquiriesModule.init();BriefingModule.init();MaintenanceModule.init();WeatherModule.init();CelebrationModule.init();VibeModule.init();GoldenHourModule.init();FeaturedEventsModule.init();StaffModule.init();
+        
+        const PolishModule = (function () {
+          function initReveal() {
+            const items = document.querySelectorAll('.reveal');
+            if (!items.length) return;
+            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window);
+            if (reduceMotion) { items.forEach(el => el.classList.add('is-visible')); return; }
+            items.forEach(el => el.classList.add('pre-reveal'));
+            const observer = new IntersectionObserver(entries => {
+              entries.forEach(entry => {
+                if (entry.isIntersecting) { entry.target.classList.add('is-visible'); observer.unobserve(entry.target); }
+              });
+            }, { threshold: 0.15 });
+            items.forEach(el => observer.observe(el));
+          }
+          function init() { initReveal(); }
+          return { init };
+        })();
+        PolishModule.init();
+        initCustomFeatures();
+        console.log("Haven Portal Modules Loaded Successfully.");
+    } catch (e) {
+        console.error("FATAL ERROR DURING INITIALIZATION:", e);
     }
-    initHavenMessenger();
-})();
+}
+
+// Safe boot wrapper
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+        supabaseClient = window.supabase.createClient('https://bsbwrvqevtoujfvcvvju.supabase.co', 'sb_publishable_c6IrevCpSel1njeKV0PhEA_Rbw2UdAx');
+        window.supabaseClient = supabaseClient; // CRITICAL FIX: Expose to Messenger
+        initializeAppModules();
+    } else {
+        let attempts = 0;
+        const supabaseWait = setInterval(function() {
+            attempts++;
+            if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+                clearInterval(supabaseWait);
+                supabaseClient = window.supabase.createClient('https://bsbwrvqevtoujfvcvvju.supabase.co', 'sb_publishable_c6IrevCpSel1njeKV0PhEA_Rbw2UdAx');
+                window.supabaseClient = supabaseClient; // CRITICAL FIX: Expose to Messenger
+                initializeAppModules();
+            } else if (attempts > 100) {
+                clearInterval(supabaseWait);
+                console.error("Supabase CDN failed to load.");
+            }
+        }, 100);
+    }
+});}}) 
