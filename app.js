@@ -1662,3 +1662,291 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 100);
     }
 });
+// ==========================================
+// HAVEN STAFF MESSENGER INTEGRATION
+// ==========================================
+(function() {
+    function initHavenMessenger() {
+        if (typeof window.supabaseClient === 'undefined') {
+            setTimeout(initHavenMessenger, 100);
+            return;
+        }
+        const sb = window.supabaseClient;
+        let mUser = null, mProfile = null, allUsers = [], mConversations = [], mActiveConv = null, mActiveMsgs = [], mActiveParts = [], mRealtimeChannel = null, mGroupSelected = new Set();
+        const AVATAR_COLORS = ['#7c5cff','#00e0ff','#ff4f8b','#facc15','#34d399','#fb7185','#22d3ee','#c084fc'];
+        let audioCtx;
+        
+        function getAudioCtx() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); return audioCtx; }
+        function playSound(type) {
+            if (type === 'none' || !type) return;
+            const ctx = getAudioCtx(); const now = ctx.currentTime;
+            if (type === 'chime') { const osc1 = ctx.createOscillator(), g1 = ctx.createGain(); osc1.connect(g1); g1.connect(ctx.destination); osc1.frequency.setValueAtTime(880, now); osc1.frequency.setValueAtTime(1320, now + 0.1); g1.gain.setValueAtTime(0.15, now); g1.gain.exponentialRampToValueAtTime(0.001, now + 0.3); osc1.start(now); osc1.stop(now + 0.3); }
+            else if (type === 'pop') { const osc = ctx.createOscillator(), g = ctx.createGain(); osc.type = 'sine'; osc.connect(g); g.connect(ctx.destination); osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(200, now + 0.1); g.gain.setValueAtTime(0.3, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.15); osc.start(now); osc.stop(now + 0.15); }
+            else if (type === 'ding') { const osc = ctx.createOscillator(), g = ctx.createGain(); osc.type = 'triangle'; osc.connect(g); g.connect(ctx.destination); osc.frequency.setValueAtTime(988, now); g.gain.setValueAtTime(0.2, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.4); osc.start(now); osc.stop(now + 0.4); }
+        }
+        function getInitials(name) { if (!name) return '?'; const p = name.trim().split(/\s+/); return p.length === 1 ? p[0].slice(0,2).toUpperCase() : (p[0][0] + p[p.length-1][0]).toUpperCase(); }
+        function colorForId(id) { if (!id) return AVATAR_COLORS[0]; let h = 0; for (let i = 0; i < id.length; i++) h = id.charCodeAt(i) + ((h << 5) - h); return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length]; }
+        function formatTime(iso) { if (!iso) return ''; const d = new Date(iso), now = new Date(); const diff = (now - d) / 1000; if (diff < 60) return 'just now'; if (diff < 3600) return Math.floor(diff/60) + 'm'; if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); return d.toLocaleDateString([], {month:'short', day:'numeric'}); }
+        function mToast(msg, type='') { const el = document.createElement('div'); el.className = 'toast ' + type; el.textContent = msg; document.getElementById('messenger-toast-container').appendChild(el); setTimeout(() => el.remove(), 3200); }
+        function escapeHtml(s) { if (!s) return ''; return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+        
+        function setTheme(theme) { const root = document.getElementById('messenger-root'); if(root) root.setAttribute('data-theme', theme); localStorage.setItem('haven_theme', theme); document.querySelectorAll('#messenger-root .theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === theme)); }
+        function setSound(sound) { localStorage.setItem('haven_notif_sound', sound); document.querySelectorAll('#messenger-root .sound-btn').forEach(b => b.classList.toggle('active', b.dataset.sound === sound)); }
+
+        function toggleSettingsDropdown(btn) {
+            const dd = document.getElementById('messenger-settings-dropdown');
+            if (dd.style.display === 'flex') { dd.style.display = 'none'; return; }
+            const rect = btn.getBoundingClientRect();
+            dd.style.top = (rect.bottom + 10) + 'px';
+            dd.style.left = (rect.right - 260) + 'px';
+            dd.style.display = 'flex';
+        }
+
+        document.getElementById('messenger-auth-settings-btn').addEventListener('click', (e) => { e.stopPropagation(); toggleSettingsDropdown(e.currentTarget); });
+        document.getElementById('messenger-app-settings-btn').addEventListener('click', (e) => { e.stopPropagation(); toggleSettingsDropdown(e.currentTarget); });
+        document.querySelectorAll('#messenger-root .theme-btn').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); setTheme(b.dataset.theme); }));
+        document.querySelectorAll('#messenger-root .sound-btn').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); const s = b.dataset.sound; setSound(s); playSound(s); }));
+
+        let isSignup = false;
+        function setAuthTab(signup) { isSignup = signup; document.getElementById('messenger-signup-fields').style.display = signup ? 'block' : 'none'; document.getElementById('messenger-auth-submit').textContent = signup ? 'Create Account' : 'Sign In'; document.getElementById('messenger-tab-signin').classList.toggle('active', !signup); document.getElementById('messenger-tab-signup').classList.toggle('active', signup); document.getElementById('messenger-auth-error').style.display = 'none'; }
+        document.getElementById('messenger-tab-signin').addEventListener('click', () => setAuthTab(false));
+        document.getElementById('messenger-tab-signup').addEventListener('click', () => setAuthTab(true));
+
+        document.getElementById('messenger-auth-form').addEventListener('submit', async (e) => {
+            e.preventDefault(); getAudioCtx();
+            const email = document.getElementById('messenger-auth-email').value.trim();
+            const password = document.getElementById('messenger-auth-password').value;
+            const errEl = document.getElementById('messenger-auth-error');
+            const submitBtn = document.getElementById('messenger-auth-submit');
+            errEl.style.display = 'none'; submitBtn.disabled = true; submitBtn.innerHTML = '<span class="spinner"></span>';
+            try {
+                if (isSignup) {
+                    const fullName = document.getElementById('messenger-auth-name').value.trim();
+                    if (!fullName) throw new Error('Please enter your name');
+                    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: fullName, username: email.split('@')[0] }}});
+                    if (error) throw error;
+                    if (data.session) { await handleAuthSuccess(data.session); } else { mToast('Check your email to confirm', 'success'); setAuthTab(false); }
+                } else {
+                    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+                    if (error) throw error;
+                    if (data.session) await handleAuthSuccess(data.session);
+                }
+            } catch (err) { errEl.textContent = err.message || 'Auth failed'; errEl.style.display = 'block'; }
+            finally { submitBtn.disabled = false; submitBtn.textContent = isSignup ? 'Create Account' : 'Sign In'; }
+        });
+
+        document.getElementById('messenger-logout-btn').addEventListener('click', async () => { await sb.auth.signOut(); });
+
+        async function handleAuthSuccess(session) {
+            mUser = session.user; await loadMyProfile();
+            if (!mProfile) { await sb.auth.signOut(); mUser = null; showAuth(); return; }
+            showApp(); await Promise.all([loadUsers(), loadConversations()]); subscribeToConversations();
+        }
+        async function loadMyProfile() { const { data, error } = await sb.from('profiles').select('*').eq('id', mUser.id).maybeSingle(); if (error) { console.error(error); return; } mProfile = data; }
+        function showAuth() { document.getElementById('messenger-auth-view').style.display = 'flex'; document.getElementById('messenger-app-view').style.display = 'none'; }
+        function showApp() {
+            document.getElementById('messenger-auth-view').style.display = 'none';
+            document.getElementById('messenger-app-view').style.display = 'block';
+            document.getElementById('messenger-me-name').textContent = mProfile.full_name || mProfile.username || 'User';
+            document.getElementById('messenger-me-email').textContent = mProfile.email;
+            const av = document.getElementById('messenger-me-avatar');
+            av.textContent = getInitials(mProfile.full_name || mProfile.username);
+            av.style.background = mProfile.avatar_color || colorForId(mProfile.id);
+        }
+        async function loadUsers() { const { data, error } = await sb.from('profiles').select('*').neq('id', mUser.id).order('full_name', { ascending: true }); if (error) { console.error(error); return; } allUsers = data || []; renderUserDropdown(''); }
+        function renderUserDropdown(query) {
+            const list = document.getElementById('messenger-user-list'); const empty = document.getElementById('messenger-user-list-empty');
+            const q = query.toLowerCase(); const filtered = allUsers.filter(u => { const n = (u.full_name || '').toLowerCase(), un = (u.username || '').toLowerCase(); return !q || n.includes(q) || un.includes(q); });
+            if (filtered.length === 0) { list.innerHTML = ''; empty.classList.remove('hidden'); return; }
+            empty.classList.add('hidden');
+            list.innerHTML = filtered.map(u => `<div class="user-row" data-user-id="${u.id}"><div class="avatar avatar-sm" style="background:${u.avatar_color || colorForId(u.id)}">${getInitials(u.full_name || u.username)}</div><div class="flex-1 min-w-0"><div class="text-sm font-semibold truncate">${escapeHtml(u.full_name || u.username)}</div></div></div>`).join('');
+            list.querySelectorAll('.user-row').forEach(row => row.addEventListener('click', () => { startDirectMessage(row.dataset.userId); document.getElementById('messenger-user-dropdown').style.display = 'none'; document.getElementById('messenger-user-search').value = ''; }));
+        }
+        document.getElementById('messenger-new-msg-btn').addEventListener('click', (e) => { e.stopPropagation(); const dd = document.getElementById('messenger-user-dropdown'); dd.style.display = dd.style.display === 'flex' ? 'none' : 'flex'; if (dd.style.display === 'flex') setTimeout(() => document.getElementById('messenger-user-search').focus(), 50); });
+        document.getElementById('messenger-user-search').addEventListener('input', (e) => renderUserDropdown(e.target.value));
+        document.getElementById('messenger-chat-menu-btn').addEventListener('click', (e) => { e.stopPropagation(); const dd = document.getElementById('messenger-chat-menu-dropdown'); dd.style.display = dd.style.display === 'flex' ? 'none' : 'flex'; });
+        
+        document.getElementById('messenger-delete-conv-btn').addEventListener('click', async () => {
+            if (!mActiveConv || mActiveConv.created_by !== mUser.id) { mToast('Only creator can delete', 'error'); return; }
+            if (confirm('Delete this entire conversation?')) {
+                const { error } = await sb.from('conversations').delete().eq('id', mActiveConv.id);
+                if (error) mToast('Failed', 'error'); else { mConversations = mConversations.filter(c => c.id !== mActiveConv.id); mActiveConv = null; mActiveMsgs = []; document.getElementById('messenger-chat-menu-dropdown').style.display = 'none'; document.getElementById('messenger-chat-menu-btn').style.display = 'none'; document.getElementById('messenger-chat-empty').style.display = 'flex'; document.getElementById('messenger-message-input-area').style.display = 'none'; document.getElementById('messenger-messages-container').innerHTML = ''; document.getElementById('messenger-chat-header-content').innerHTML = ''; renderConversations(); mToast('Deleted', 'success'); }
+            }
+        });
+
+        async function loadConversations() {
+            const { data: parts, error: pe } = await sb.from('conversation_participants').select('conversation_id').eq('user_id', mUser.id);
+            if (pe) return; if (!parts || parts.length === 0) { mConversations = []; renderConversations(); return; }
+            const ids = parts.map(p => p.conversation_id);
+            const { data: convos, error: ce } = await sb.from('conversations').select('*').in('id', ids).order('created_at', { ascending: false });
+            if (ce) return;
+            const enriched = [];
+            for (const c of convos) {
+                const { data: cp } = await sb.from('conversation_participants').select('user_id, profiles(*)').eq('conversation_id', c.id);
+                const participants = (cp || []).map(p => p.profiles).filter(Boolean);
+                const { data: lastMsg } = await sb.from('messages').select('*').eq('conversation_id', c.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
+                enriched.push({ ...c, participants, lastMessage: lastMsg });
+            }
+            enriched.sort((a, b) => new Date(b.lastMessage?.created_at || b.created_at) - new Date(a.lastMessage?.created_at || a.created_at));
+            mConversations = enriched; renderConversations();
+        }
+        
+        function getConvDisplay(conv) {
+            if (conv.type === 'group') return { name: conv.name || 'Unnamed Group', isGroup: true };
+            const other = conv.participants.find(p => p.id !== mUser.id);
+            return { name: other ? (other.full_name || other.username || other.email) : 'Unknown', avatar: other ? (other.avatar_color || colorForId(other.id)) : colorForId(conv.id), initials: other ? getInitials(other.full_name || other.username) : '?', isGroup: false, other };
+        }
+        
+        function renderConversations() {
+            const list = document.getElementById('messenger-conv-list'); const empty = document.getElementById('messenger-conv-empty');
+            if (mConversations.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+            empty.style.display = 'none';
+            list.innerHTML = mConversations.map(c => {
+                const info = getConvDisplay(c); const isActive = mActiveConv && mActiveConv.id === c.id;
+                const lastPreview = c.lastMessage ? escapeHtml(c.lastMessage.content.slice(0, 40)) : 'No messages yet';
+                const avatarHtml = info.isGroup ? `<div class="avatar">${c.participants.length}</div>` : `<div class="avatar" style="background:${info.avatar}">${info.initials}</div>`;
+                return `<div class="conv-item ${isActive ? 'active' : ''}" data-conv-id="${c.id}">${avatarHtml}<div class="flex-1 min-w-0"><div class="text-sm font-semibold truncate">${escapeHtml(info.name)}</div><div class="text-xs truncate mt-0.5" style="color:var(--muted)">${lastPreview}</div></div></div>`;
+            }).join('');
+            list.querySelectorAll('.conv-item').forEach(item => item.addEventListener('click', () => { const conv = mConversations.find(c => c.id === item.dataset.convId); openConversation(conv); document.getElementById('messenger-sidebar').classList.remove('open'); }));
+        }
+        
+        async function openConversation(conv) {
+            mActiveConv = conv; mActiveMsgs = []; mActiveParts = conv.participants || []; renderConversations(); renderChatHeader();
+            document.getElementById('messenger-chat-empty').style.display = 'none'; document.getElementById('messenger-message-input-area').style.display = 'block';
+            document.getElementById('messenger-messages-container').innerHTML = '<div class="flex items-center justify-center py-10"><div class="spinner" style="color:var(--accent)"></div></div>';
+            await loadMessages(conv.id); subscribeToMessages(conv.id);
+            document.getElementById('messenger-chat-menu-btn').style.display = (mActiveConv.created_by === mUser.id) ? 'flex' : 'none';
+        }
+        
+        function renderChatHeader() {
+            if (!mActiveConv) return; const info = getConvDisplay(mActiveConv); const header = document.getElementById('messenger-chat-header-content');
+            if (info.isGroup) { header.innerHTML = `<div class="flex items-center gap-3"><div class="avatar avatar-sm">${mActiveParts.length}</div><div class="min-w-0"><div class="font-bold truncate font-display text-lg">${escapeHtml(info.name)}</div><div class="text-xs truncate" style="color:var(--muted)">${mActiveParts.length} members</div></div></div>`; }
+            else { header.innerHTML = `<div class="flex items-center gap-3"><div class="avatar avatar-sm" style="background:${info.avatar}">${info.initials}</div><div class="min-w-0"><div class="font-bold truncate font-display text-lg">${escapeHtml(info.name)}</div></div></div>`; }
+        }
+        
+        async function loadMessages(convId) {
+            const { data, error } = await sb.from('messages').select('*, sender:profiles(*)').eq('conversation_id', convId).order('created_at', { ascending: true }).limit(200);
+            if (error) return; mActiveMsgs = data || []; renderMessages();
+        }
+        
+        function renderMessages() {
+            const container = document.getElementById('messenger-messages-container');
+            if (mActiveMsgs.length === 0) { container.innerHTML = `<div class="flex flex-col items-center justify-center h-full text-center"><p class="text-sm font-semibold">No messages yet</p></div>`; return; }
+            const isGroup = mActiveConv?.type === 'group'; let html = ''; let lastSender = null, lastDate = null;
+            mActiveMsgs.forEach(m => {
+                const isSent = m.sender_id === mUser.id; const sender = m.sender || {};
+                const showSenderHeader = isGroup && !isSent && m.sender_id !== lastSender;
+                const msgDate = new Date(m.created_at).toDateString(); const showDateDivider = msgDate !== lastDate; lastDate = msgDate; lastSender = m.sender_id;
+                if (showDateDivider) { html += `<div class="flex items-center my-6"><div class="flex-1 h-px" style="background:var(--border)"></div><div class="px-4 text-[10px] uppercase font-bold" style="color:var(--muted-2)">${new Date(m.created_at).toLocaleDateString([], {month:'short',day:'numeric'})}</div><div class="flex-1 h-px" style="background:var(--border)"></div></div>`; }
+                if (showSenderHeader) { html += `<div class="flex items-center gap-2 mt-4 mb-2 px-1"><div class="avatar avatar-sm" style="background:${sender.avatar_color || colorForId(sender.id)}">${getInitials(sender.full_name || sender.username)}</div><div class="text-xs font-bold">${escapeHtml(sender.full_name || sender.username)}</div></div>`; }
+                html += `<div class="msg-row ${isSent ? 'sent' : 'received'}">${!isSent && !isGroup ? `<div class="avatar avatar-sm" style="background:${sender.avatar_color || colorForId(sender.id)}">${getInitials(sender.full_name || sender.username)}</div>` : ''}<div class="msg-bubble ${isSent ? 'sent' : 'received'}">${escapeHtml(m.content)}</div></div><div class="msg-meta" style="text-align:${isSent ? 'right' : 'left'};">${formatTime(m.created_at)}</div>`;
+            });
+            container.innerHTML = html; requestAnimationFrame(() => { container.scrollTop = container.scrollHeight; });
+        }
+        
+        const msgInput = document.getElementById('messenger-msg-input');
+        msgInput.addEventListener('input', () => { msgInput.style.height = 'auto'; msgInput.style.height = Math.min(msgInput.scrollHeight, 120) + 'px'; });
+        msgInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('messenger-msg-form').requestSubmit(); } });
+        document.getElementById('messenger-msg-form').addEventListener('submit', async (e) => {
+            e.preventDefault(); const content = msgInput.value.trim(); if (!content || !mActiveConv) return; msgInput.value = ''; msgInput.style.height = 'auto';
+            const { error } = await sb.from('messages').insert({ conversation_id: mActiveConv.id, sender_id: mUser.id, content });
+            if (error) mToast('Failed to send', 'error');
+        });
+        
+        async function startDirectMessage(otherUserId) {
+            const { data: myParts } = await sb.from('conversation_participants').select('conversation_id, conversations!inner(*)').eq('user_id', mUser.id).eq('conversations.type', 'direct');
+            if (myParts) {
+                for (const p of myParts) {
+                    const { data: theirPart } = await sb.from('conversation_participants').select('user_id').eq('conversation_id', p.conversation_id).eq('user_id', otherUserId).maybeSingle();
+                    if (theirPart) { const conv = mConversations.find(c => c.id === p.conversation_id); if (conv) { openConversation(conv); return; } }
+                }
+            }
+            const { data: newConv, error } = await sb.from('conversations').insert({ type: 'direct', created_by: mUser.id }).select().single();
+            if (error) { mToast('Failed', 'error'); return; }
+            await sb.from('conversation_participants').insert([{ conversation_id: newConv.id, user_id: mUser.id }, { conversation_id: newConv.id, user_id: otherUserId }]);
+            const otherUser = allUsers.find(u => u.id === otherUserId);
+            const convWith = { ...newConv, participants: [mProfile, otherUser].filter(Boolean), lastMessage: null };
+            mConversations.unshift(convWith); renderConversations(); openConversation(convWith); mToast('Conversation started', 'success');
+        }
+        
+        document.getElementById('messenger-new-group-btn').addEventListener('click', () => {
+            mGroupSelected.clear(); document.getElementById('messenger-group-name').value = ''; document.getElementById('messenger-group-search').value = ''; document.getElementById('messenger-group-error').style.display = 'none'; renderGroupUserList(''); renderGroupSelected(); document.getElementById('messenger-group-modal').style.display = 'flex';
+        });
+        document.getElementById('messenger-group-search').addEventListener('input', (e) => renderGroupUserList(e.target.value));
+        
+        function renderGroupUserList(query) {
+            const list = document.getElementById('messenger-group-user-list'); const q = query.toLowerCase();
+            const filtered = allUsers.filter(u => { const n = (u.full_name || '').toLowerCase(); return !q || n.includes(q); });
+            if (filtered.length === 0) { list.innerHTML = `<div class="p-4 text-center text-xs" style="color:var(--muted)">No staff found</div>`; return; }
+            list.innerHTML = filtered.map(u => `<div class="user-row" data-user-id="${u.id}"><div class="checkbox ${mGroupSelected.has(u.id) ? 'checked' : ''}"></div><div class="avatar avatar-sm" style="background:${u.avatar_color || colorForId(u.id)}">${getInitials(u.full_name || u.username)}</div><div class="flex-1 min-w-0"><div class="text-sm font-semibold truncate">${escapeHtml(u.full_name || u.username)}</div></div></div>`).join('');
+            list.querySelectorAll('.user-row').forEach(row => row.addEventListener('click', () => { const id = row.dataset.userId; if (mGroupSelected.has(id)) mGroupSelected.delete(id); else mGroupSelected.add(id); renderGroupUserList(document.getElementById('messenger-group-search').value); renderGroupSelected(); }));
+        }
+        function renderGroupSelected() {
+            const container = document.getElementById('messenger-group-selected');
+            if (mGroupSelected.size === 0) { container.innerHTML = ''; container.style.display = 'none'; return; }
+            container.style.display = 'flex';
+            container.innerHTML = [...mGroupSelected].map(id => { const u = allUsers.find(x => x.id === id); if (!u) return ''; return `<div class="chip"><div class="avatar avatar-sm" style="width:22px;height:22px;font-size:9px;border-radius:6px;background:${u.avatar_color || colorForId(u.id)}">${getInitials(u.full_name || u.username)}</div>${escapeHtml(u.full_name || u.username)}<button data-remove="${id}" style="color:var(--accent);background:none;border:none;cursor:pointer;font-size:16px;line-height:1;margin-left:4px;">×</button></div>`; }).join('');
+            container.querySelectorAll('[data-remove]').forEach(btn => btn.addEventListener('click', (e) => { e.stopPropagation(); mGroupSelected.delete(btn.dataset.remove); renderGroupUserList(document.getElementById('messenger-group-search').value); renderGroupSelected(); }));
+        }
+        document.getElementById('messenger-create-group-btn').addEventListener('click', async () => {
+            const name = document.getElementById('messenger-group-name').value.trim(); const errEl = document.getElementById('messenger-group-error'); errEl.style.display = 'none';
+            if (!name) { errEl.textContent = 'Please enter a group name'; errEl.style.display = 'block'; return; }
+            if (mGroupSelected.size === 0) { errEl.textContent = 'Please select at least one member'; errEl.style.display = 'block'; return; }
+            const btn = document.getElementById('messenger-create-group-btn'); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+            try {
+                const { data: newConv, error } = await sb.from('conversations').insert({ name, type: 'group', created_by: mUser.id }).select().single();
+                if (error) throw error;
+                const inserts = [{ conversation_id: newConv.id, user_id: mUser.id }]; mGroupSelected.forEach(uid => inserts.push({ conversation_id: newConv.id, user_id: uid }));
+                const { error: pe } = await sb.from('conversation_participants').insert(inserts); if (pe) throw pe;
+                const participants = [mProfile, ...allUsers.filter(u => mGroupSelected.has(u.id))];
+                const convWith = { ...newConv, participants, lastMessage: null };
+                mConversations.unshift(convWith); renderConversations(); openConversation(convWith); document.getElementById('messenger-group-modal').style.display = 'none'; mToast('Group created', 'success');
+            } catch (err) { errEl.textContent = err.message || 'Failed'; errEl.style.display = 'block'; }
+            finally { btn.disabled = false; btn.textContent = 'Create Group'; }
+        });
+        
+        function subscribeToMessages(convId) {
+            if (mRealtimeChannel) { sb.removeChannel(mRealtimeChannel); mRealtimeChannel = null; }
+            mRealtimeChannel = sb.channel('messages-' + convId)
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${convId}` }, async (payload) => {
+                    const { data: sender } = await sb.from('profiles').select('*').eq('id', payload.new.sender_id).maybeSingle();
+                    const msg = { ...payload.new, sender: sender };
+                    if (mActiveMsgs.some(m => m.id === msg.id)) return;
+                    mActiveMsgs.push(msg); renderMessages();
+                    if (mActiveConv && mActiveConv.id === convId) { mActiveConv.lastMessage = msg; renderConversations(); }
+                    if (payload.new.sender_id !== mUser.id) { const sound = localStorage.getItem('haven_notif_sound') || 'none'; playSound(sound); }
+                })
+                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages', filter: `conversation_id=eq.${convId}` }, (payload) => { mActiveMsgs = mActiveMsgs.filter(m => m.id !== payload.old.id); renderMessages(); })
+                .subscribe();
+        }
+        
+        function subscribeToConversations() {
+            sb.channel('conversations')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'conversation_participants' }, async (payload) => { if (payload.new.user_id === mUser.id) await loadConversations(); })
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
+                    const conv = mConversations.find(c => c.id === payload.new.conversation_id);
+                    if (conv && (!mActiveConv || mActiveConv.id !== conv.id)) { conv.lastMessage = payload.new; mConversations.sort((a, b) => new Date(b.lastMessage?.created_at || b.created_at) - new Date(a.lastMessage?.created_at || a.created_at)); renderConversations(); }
+                })
+                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'conversations' }, (payload) => {
+                    mConversations = mConversations.filter(c => c.id !== payload.old.id);
+                    if (mActiveConv && mActiveConv.id === payload.old.id) { mActiveConv = null; mActiveMsgs = []; document.getElementById('messenger-chat-menu-btn').style.display = 'none'; document.getElementById('messenger-chat-empty').style.display = 'flex'; document.getElementById('messenger-message-input-area').style.display = 'none'; document.getElementById('messenger-messages-container').innerHTML = ''; document.getElementById('messenger-chat-header-content').innerHTML = ''; }
+                    renderConversations();
+                })
+                .subscribe();
+        }
+        
+        document.getElementById('messenger-mobile-menu').addEventListener('click', () => document.getElementById('messenger-sidebar').classList.add('open'));
+        document.getElementById('messenger-mobile-close').addEventListener('click', () => document.getElementById('messenger-sidebar').classList.remove('open'));
+
+        sb.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session) { handleAuthSuccess(session); }
+            if (event === 'SIGNED_OUT') { mUser = null; mProfile = null; if (mRealtimeChannel) { sb.removeChannel(mRealtimeChannel); mRealtimeChannel = null; } showAuth(); }
+        });
+        
+        // Initial Boot
+        const theme = localStorage.getItem('haven_theme') || 'midnight'; setTheme(theme);
+        const sound = localStorage.getItem('haven_notif_sound') || 'none'; setSound(sound);
+        sb.auth.getSession().then(({ data: { session } }) => { if (session) handleAuthSuccess(session); else showAuth(); });
+    }
+    initHavenMessenger();
+})();
