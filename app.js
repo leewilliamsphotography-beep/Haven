@@ -387,7 +387,6 @@ function initCustomFeatures() {
 function initializeAppModules() {
     console.log("Initializing Haven Portal Modules...");
     try {
-        MessagesModule.init();
         LayoutModule.init();SplashModule.init();SideNavModule.init();AccessibilityModule.init();QuickJumpModule.init();TimeModule.init();ToastModule.init();ReadAloudModule.init();AmbientAudioModule.init();SensoryModule.init();BackToTopModule.init();SeasonalModule.init();FaviconModule.init();ThemeModule.init();PaletteModule.init();FontSizeModule.init();DyslexiaModule.init();HapticModule.init();BionicModule.init();NextSectionModule.init();RevealModule.init();MoodModule.init();LightboxModule.init();FooterA11yModule.init();ProgressModule.init();SummerEffectsModule.init();AuthModule.init();TesterModule.init();DatabaseModule.init();FilmNightModule.init();ParallaxModule.init();EventsModule.init();WilfModule.init();MenuModule.init();CommunityModule.init();EnquiriesModule.init();BriefingModule.init();MaintenanceModule.init();WeatherModule.init();CelebrationModule.init();VibeModule.init();GoldenHourModule.init();FeaturedEventsModule.init();StaffModule.init();
         
         const PolishModule = (function () {
