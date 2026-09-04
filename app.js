@@ -1664,6 +1664,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 // ==========================================
 // ==========================================
+// ==========================================
 // HAVEN STAFF MESSENGER INTEGRATION
 // ==========================================
 (function() {
@@ -1708,7 +1709,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('#messenger-root .theme-btn').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); setTheme(b.dataset.theme); }));
         document.querySelectorAll('#messenger-root .sound-btn').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); const s = b.dataset.sound; setSound(s); playSound(s); }));
 
-        // === LOGIN FORM (No more Create Account) ===
         document.getElementById('messenger-auth-form').addEventListener('submit', async (e) => {
             e.preventDefault(); getAudioCtx();
             const email = document.getElementById('messenger-auth-email').value.trim();
@@ -1727,25 +1727,29 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('messenger-logout-btn').addEventListener('click', async () => { await sb.auth.signOut(); });
 
         async function handleAuthSuccess(session) {
-            mUser = session.user; 
-            await loadMyProfile(); 
-            showApp(); 
-            await Promise.all([loadUsers(), loadConversations()]); 
-            subscribeToConversations();
+            try {
+                if (!session || !session.user) { showAuth(); return; }
+                mUser = session.user; 
+                await loadMyProfile(); 
+                
+                if (!mProfile) {
+                    mProfile = { id: mUser.id, email: mUser.email, full_name: mUser.user_metadata?.full_name || mUser.email.split('@')[0], username: mUser.user_metadata?.username || mUser.email.split('@')[0], avatar_color: colorForId(mUser.id) };
+                }
+                
+                showApp(); 
+                await Promise.all([loadUsers(), loadConversations()]); 
+                subscribeToConversations();
+            } catch (err) {
+                console.error("Messenger Crash on Login:", err);
+                // If it crashes, force show the app anyway so they aren't stuck on login
+                if (mUser) showApp(); else showAuth();
+            }
         }
         
-        // === FIXED PROFILE LOADER (Falls back to Auth metadata instead of logging out) ===
         async function loadMyProfile() {
             const { data, error } = await sb.from('profiles').select('*').eq('id', mUser.id).maybeSingle();
             if (error || !data) {
-                // Fallback to auth metadata if no profile exists
-                mProfile = {
-                    id: mUser.id,
-                    email: mUser.email,
-                    full_name: mUser.user_metadata?.full_name || mUser.email.split('@')[0],
-                    username: mUser.user_metadata?.username || mUser.email.split('@')[0],
-                    avatar_color: colorForId(mUser.id)
-                };
+                mProfile = { id: mUser.id, email: mUser.email, full_name: mUser.user_metadata?.full_name || mUser.email.split('@')[0], username: mUser.user_metadata?.username || mUser.email.split('@')[0], avatar_color: colorForId(mUser.id) };
                 return;
             }
             mProfile = data;
@@ -1755,11 +1759,11 @@ document.addEventListener('DOMContentLoaded', function() {
         function showApp() {
             document.getElementById('messenger-auth-view').style.display = 'none';
             document.getElementById('messenger-app-view').style.display = 'block';
-            document.getElementById('messenger-me-name').textContent = mProfile.full_name || mProfile.username || 'User';
-            document.getElementById('messenger-me-email').textContent = mProfile.email;
+            document.getElementById('messenger-me-name').textContent = mProfile?.full_name || mProfile?.username || 'User';
+            document.getElementById('messenger-me-email').textContent = mProfile?.email || '';
             const av = document.getElementById('messenger-me-avatar');
-            av.textContent = getInitials(mProfile.full_name || mProfile.username);
-            av.style.background = mProfile.avatar_color || colorForId(mProfile.id);
+            av.textContent = getInitials(mProfile?.full_name || mProfile?.username);
+            av.style.background = mProfile?.avatar_color || colorForId(mProfile?.id);
         }
         async function loadUsers() { const { data, error } = await sb.from('profiles').select('*').neq('id', mUser.id).order('full_name', { ascending: true }); if (error) { console.error(error); return; } allUsers = data || []; renderUserDropdown(''); }
         function renderUserDropdown(query) {
@@ -1951,59 +1955,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (event === 'SIGNED_OUT') { mUser = null; mProfile = null; if (mRealtimeChannel) { sb.removeChannel(mRealtimeChannel); mRealtimeChannel = null; } showAuth(); }
         });
         
-// ==========================================
-// BULLETPROOF INITIALIZATION SEQUENCE
-// ==========================================
-function initializeAppModules() {
-    console.log("Initializing Haven Portal Modules...");
-    try {
-        MessagesModule.init();
-        LayoutModule.init();SplashModule.init();SideNavModule.init();AccessibilityModule.init();QuickJumpModule.init();TimeModule.init();ToastModule.init();ReadAloudModule.init();AmbientAudioModule.init();SensoryModule.init();BackToTopModule.init();SeasonalModule.init();FaviconModule.init();ThemeModule.init();PaletteModule.init();FontSizeModule.init();DyslexiaModule.init();HapticModule.init();BionicModule.init();NextSectionModule.init();RevealModule.init();MoodModule.init();LightboxModule.init();FooterA11yModule.init();ProgressModule.init();SummerEffectsModule.init();AuthModule.init();TesterModule.init();DatabaseModule.init();FilmNightModule.init();ParallaxModule.init();EventsModule.init();WilfModule.init();MenuModule.init();CommunityModule.init();EnquiriesModule.init();BriefingModule.init();MaintenanceModule.init();WeatherModule.init();CelebrationModule.init();VibeModule.init();GoldenHourModule.init();FeaturedEventsModule.init();StaffModule.init();
-        
-        const PolishModule = (function () {
-          function initReveal() {
-            const items = document.querySelectorAll('.reveal');
-            if (!items.length) return;
-            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window);
-            if (reduceMotion) { items.forEach(el => el.classList.add('is-visible')); return; }
-            items.forEach(el => el.classList.add('pre-reveal'));
-            const observer = new IntersectionObserver(entries => {
-              entries.forEach(entry => {
-                if (entry.isIntersecting) { entry.target.classList.add('is-visible'); observer.unobserve(entry.target); }
-              });
-            }, { threshold: 0.15 });
-            items.forEach(el => observer.observe(el));
-          }
-          function init() { initReveal(); }
-          return { init };
-        })();
-        PolishModule.init();
-        initCustomFeatures();
-        console.log("Haven Portal Modules Loaded Successfully.");
-    } catch (e) {
-        console.error("FATAL ERROR DURING INITIALIZATION:", e);
+        const theme = localStorage.getItem('haven_theme') || 'midnight'; setTheme(theme);
+        const sound = localStorage.getItem('haven_notif_sound') || 'none'; setSound(sound);
+        sb.auth.getSession().then(({ data: { session } }) => { if (session) handleAuthSuccess(session); else showAuth(); });
     }
-}
-
-// Safe boot wrapper
-document.addEventListener('DOMContentLoaded', function() {
-    if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
-        supabaseClient = window.supabase.createClient('https://bsbwrvqevtoujfvcvvju.supabase.co', 'sb_publishable_c6IrevCpSel1njeKV0PhEA_Rbw2UdAx');
-        window.supabaseClient = supabaseClient; // CRITICAL FIX: Expose to Messenger
-        initializeAppModules();
-    } else {
-        let attempts = 0;
-        const supabaseWait = setInterval(function() {
-            attempts++;
-            if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
-                clearInterval(supabaseWait);
-                supabaseClient = window.supabase.createClient('https://bsbwrvqevtoujfvcvvju.supabase.co', 'sb_publishable_c6IrevCpSel1njeKV0PhEA_Rbw2UdAx');
-                window.supabaseClient = supabaseClient; // CRITICAL FIX: Expose to Messenger
-                initializeAppModules();
-            } else if (attempts > 100) {
-                clearInterval(supabaseWait);
-                console.error("Supabase CDN failed to load.");
-            }
-        }, 100);
-    }
-});}}) 
+    initHavenMessenger();
+})();

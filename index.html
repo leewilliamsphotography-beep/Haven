@@ -289,7 +289,10 @@
     }
 
     @media (max-width: 768px) {
-        /* Mobile Login Fix */
+                /* Fix Seasonal Grid & Theme Cards on Mobile */
+        .tester-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+        .tester-season-btn { padding: 10px 5px !important; font-size: 0.8rem !important; }
+        .theme-card { flex: 1 1 45% !important; padding: 12px 8px !important; } 
         #testerLogin {
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             height: auto; min-height: 100%; align-items: flex-start; 
@@ -1315,57 +1318,15 @@
     });
 </script>
 <script>
-// === GENERATIVE ARPEGGIO THEME MUSIC ===
-let arpAudioCtx, arpInterval, arpPlaying = false;
-function playArpeggio() {
-    if (!arpAudioCtx) arpAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (arpAudioCtx.state === 'suspended') arpAudioCtx.resume();
-
-    // A soft Cmaj7 arpeggio (C4, E4, G4, B4, C5)
-    const notes = [261.63, 329.63, 392.00, 493.88, 523.25];
-    let i = 0;
-
-    function playNote() {
-        const osc = arpAudioCtx.createOscillator();
-        const gain = arpAudioCtx.createGain();
-        osc.type = 'sine'; // Soft sine wave
-        osc.frequency.value = notes[i % notes.length];
-        
-        const now = arpAudioCtx.currentTime;
-        gain.gain.setValueAtTime(0, now);
-        gain.gain.linearRampToValueAtTime(0.08, now + 0.05); // Gentle fade in
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5); // Long fade out
-        
-        osc.connect(gain);
-        gain.connect(arpAudioCtx.destination);
-        osc.start(now);
-        osc.stop(now + 1.5);
-        
-        i++;
-    }
-    playNote();
-    arpInterval = setInterval(playNote, 800); // Play a note every 800ms
-}
-
-// Hook into the existing music button in the sidebar
-document.addEventListener('DOMContentLoaded', function() {
-    const musicBtn = document.getElementById('musicToggleBtn');
-    if (musicBtn) {
-        musicBtn.addEventListener('click', function() {
-            if (arpPlaying) {
-                clearInterval(arpInterval);
-                arpPlaying = false;
-                document.getElementById('musicIconPlay').style.display = 'block';
-                document.getElementById('musicIconPause').style.display = 'none';
-                document.getElementById('musicToggleText').textContent = 'Play Ambient Music';
-            } else {
-                playArpeggio();
-                arpPlaying = true;
-                document.getElementById('musicIconPlay').style.display = 'none';
-                document.getElementById('musicIconPause').style.display = 'block';
-                document.getElementById('musicToggleText').textContent = 'Pause Ambient Music';
-            }
-        });
+// === INSTANT THEME SWITCHER FIX ===
+document.addEventListener('click', function(e) {
+    const themeBtn = e.target.closest('.staff-theme-btn');
+    if (themeBtn) {
+        const newTheme = themeBtn.dataset.theme;
+        // Remove ALL possible theme classes so they don't overlap
+        document.body.classList.remove('staff-dark', 'staff-light', 'staff-warm', 'staff-ocean', 'staff-forest', 'staff-sunset');
+        // Apply the new one instantly
+        document.body.classList.add(newTheme);
     }
 });
 </script>
