@@ -1663,6 +1663,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 // ==========================================
+// ==========================================
 // HAVEN STAFF MESSENGER INTEGRATION
 // ==========================================
 (function() {
@@ -1707,11 +1708,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('#messenger-root .theme-btn').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); setTheme(b.dataset.theme); }));
         document.querySelectorAll('#messenger-root .sound-btn').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); const s = b.dataset.sound; setSound(s); playSound(s); }));
 
-        let isSignup = false;
-        function setAuthTab(signup) { isSignup = signup; document.getElementById('messenger-signup-fields').style.display = signup ? 'block' : 'none'; document.getElementById('messenger-auth-submit').textContent = signup ? 'Create Account' : 'Sign In'; document.getElementById('messenger-tab-signin').classList.toggle('active', !signup); document.getElementById('messenger-tab-signup').classList.toggle('active', signup); document.getElementById('messenger-auth-error').style.display = 'none'; }
-        document.getElementById('messenger-tab-signin').addEventListener('click', () => setAuthTab(false));
-        document.getElementById('messenger-tab-signup').addEventListener('click', () => setAuthTab(true));
-
+        // === LOGIN FORM (No more Create Account) ===
         document.getElementById('messenger-auth-form').addEventListener('submit', async (e) => {
             e.preventDefault(); getAudioCtx();
             const email = document.getElementById('messenger-auth-email').value.trim();
@@ -1720,29 +1717,40 @@ document.addEventListener('DOMContentLoaded', function() {
             const submitBtn = document.getElementById('messenger-auth-submit');
             errEl.style.display = 'none'; submitBtn.disabled = true; submitBtn.innerHTML = '<span class="spinner"></span>';
             try {
-                if (isSignup) {
-                    const fullName = document.getElementById('messenger-auth-name').value.trim();
-                    if (!fullName) throw new Error('Please enter your name');
-                    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { full_name: fullName, username: email.split('@')[0] }}});
-                    if (error) throw error;
-                    if (data.session) { await handleAuthSuccess(data.session); } else { mToast('Check your email to confirm', 'success'); setAuthTab(false); }
-                } else {
-                    const { data, error } = await sb.auth.signInWithPassword({ email, password });
-                    if (error) throw error;
-                    if (data.session) await handleAuthSuccess(data.session);
-                }
+                const { data, error } = await sb.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                if (data.session) await handleAuthSuccess(data.session);
             } catch (err) { errEl.textContent = err.message || 'Auth failed'; errEl.style.display = 'block'; }
-            finally { submitBtn.disabled = false; submitBtn.textContent = isSignup ? 'Create Account' : 'Sign In'; }
+            finally { submitBtn.disabled = false; submitBtn.textContent = 'Sign In'; }
         });
 
         document.getElementById('messenger-logout-btn').addEventListener('click', async () => { await sb.auth.signOut(); });
 
         async function handleAuthSuccess(session) {
-            mUser = session.user; await loadMyProfile();
-            if (!mProfile) { await sb.auth.signOut(); mUser = null; showAuth(); return; }
-            showApp(); await Promise.all([loadUsers(), loadConversations()]); subscribeToConversations();
+            mUser = session.user; 
+            await loadMyProfile(); 
+            showApp(); 
+            await Promise.all([loadUsers(), loadConversations()]); 
+            subscribeToConversations();
         }
-        async function loadMyProfile() { const { data, error } = await sb.from('profiles').select('*').eq('id', mUser.id).maybeSingle(); if (error) { console.error(error); return; } mProfile = data; }
+        
+        // === FIXED PROFILE LOADER (Falls back to Auth metadata instead of logging out) ===
+        async function loadMyProfile() {
+            const { data, error } = await sb.from('profiles').select('*').eq('id', mUser.id).maybeSingle();
+            if (error || !data) {
+                // Fallback to auth metadata if no profile exists
+                mProfile = {
+                    id: mUser.id,
+                    email: mUser.email,
+                    full_name: mUser.user_metadata?.full_name || mUser.email.split('@')[0],
+                    username: mUser.user_metadata?.username || mUser.email.split('@')[0],
+                    avatar_color: colorForId(mUser.id)
+                };
+                return;
+            }
+            mProfile = data;
+        }
+        
         function showAuth() { document.getElementById('messenger-auth-view').style.display = 'flex'; document.getElementById('messenger-app-view').style.display = 'none'; }
         function showApp() {
             document.getElementById('messenger-auth-view').style.display = 'none';
