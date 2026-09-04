@@ -75,15 +75,14 @@
     body { 
         background: var(--bg); color: var(--fg); font-family: 'Plus Jakarta Sans', sans-serif; 
         transition: background 0.3s, color 0.3s;
-        -webkit-user-select: none; /* Disable text selection */
-        -webkit-touch-callout: none; /* Disable long press save */
-        -webkit-tap-highlight-color: transparent; /* Remove grey tap flash */
-        -webkit-overflow-scrolling: touch; /* Smooth scrolling */
+        -webkit-user-select: none; 
+        -webkit-touch-callout: none; 
+        -webkit-tap-highlight-color: transparent; 
+        -webkit-overflow-scrolling: touch; 
     }
-    /* Allow text selection only in input fields */
     input, textarea { -webkit-user-select: text; user-select: text; }
 
-    .tester-modal { position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; max-width: 100% !important; max-height: 100% !important; display: flex !important; }
+    .tester-modal { position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; max-width: 100% !important; max-height: 100% !important; display: flex !important; z-index: 10; }
     .tester-trigger, .ambient { display: none !important; }
 
     /* === Login Screen === */
@@ -102,6 +101,10 @@
     }
     .login-box h3 { margin: 0 0 8px 0; font-size: 1.85rem; font-weight: 700; color: var(--fg); }
     .login-box p { margin: 0 0 32px 0; color: var(--muted); font-size: 0.95rem; }
+    
+    /* Error text now visible! */
+    .tester-error { color: var(--danger); font-size: 0.85rem; text-align: center; margin-top: 12px; min-height: 1.2rem; font-weight: 600; }
+
     #testerCloseBtn {
         position: fixed; top: calc(24px + var(--safe-top)); right: calc(24px + var(--safe-right)); z-index: 100; width: 44px; height: 44px;
         background: var(--surface); border: 1px solid var(--border); border-radius: 50%; color: var(--fg);
@@ -139,7 +142,7 @@
     .tester-tab-btn {
         background: transparent !important; border: 1px solid transparent !important;
         text-align: left !important; display: flex; align-items: center; gap: 12px;
-        padding: 14px 16px !important; border-radius: var(--radius) !important; /* Slightly larger for touch */
+        padding: 14px 16px !important; border-radius: var(--radius) !important;
         color: var(--muted) !important; font-family: inherit !important; font-size: 0.95rem !important;
         font-weight: 500 !important; cursor: pointer; transition: var(--transition) !important; white-space: nowrap;
     }
@@ -149,7 +152,7 @@
     .tester-tab-btn svg { width: 22px; height: 22px; stroke: currentColor; flex-shrink: 0; }
 
     /* === Main Content === */
-    .tester-content { flex: 1; height: 100%; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); position: relative; }
+    .tester-content { flex: 1; height: 100%; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); position: relative; z-index: 5; }
     .tester-tab-content {
         display: none; flex: 1; height: 100%; overflow-y: auto; padding: 40px !important;
         box-sizing: border-box !important; animation: none !important; border: none !important;
@@ -170,7 +173,7 @@
     /* === Form Elements === */
     .tester-input {
         background: var(--surface-2) !important; border: 1px solid var(--border) !important; color: var(--fg) !important;
-        border-radius: 10px !important; padding: 14px 16px !important; font-size: 16px !important; /* 16px prevents iOS zoom on focus */
+        border-radius: 10px !important; padding: 14px 16px !important; font-size: 16px !important;
         font-family: inherit !important; transition: var(--transition) !important; width: 100%; box-sizing: border-box !important;
     }
     .tester-input:focus { outline: none; border-color: var(--accent) !important; box-shadow: 0 0 0 3px var(--accent-soft) !important; }
@@ -237,7 +240,7 @@
     #adminPhotoContainer img {
         width: 50px !important; height: 50px !important; object-fit: cover !important;
         border-radius: 8px !important; flex-shrink: 0 !important; display: block !important;
-        pointer-events: none; /* Prevent native image save gesture */
+        pointer-events: none; 
     }
     #adminPhotoContainer div[style*="background-image"] {
         width: 50px !important; height: 50px !important; background-size: cover !important;
@@ -308,10 +311,13 @@
         #tab-haven.tester-tab-content { padding: calc(60px + var(--safe-top)) 0 var(--safe-bottom) 0 !important; }
         #tab-haven iframe { height: calc(100% - 60px - var(--safe-top) - var(--safe-bottom)); width: 100%; border: none; }
     }
+    
     /* === Subtle Seasonal FX === */
-    #staff-seasonal-fx { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: hidden; }
-    .tester-content > *:not(#staff-seasonal-fx) { position: relative; z-index: 1; }
-
+    /* Moved outside of scrolling containers to fix iOS WebView rendering */
+    #staff-seasonal-fx { 
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+        pointer-events: none; z-index: 1; overflow: hidden; 
+    }
     .fx-particle { position: absolute; top: -10vh; will-change: transform; animation: fx-fall linear infinite; }
     @keyframes fx-fall {
         0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
@@ -337,9 +343,11 @@
 </head>
 <body class="staff-dark">
 <div id="testerModal" class="tester-modal active" role="dialog" aria-modal="true" aria-label="Haven Portal">
+    
+    <!-- SEASONAL FX MOVED HERE: Outside the scrollable container so iOS/Android WebViews render it correctly -->
+    <div id="staff-seasonal-fx"></div>
+    
     <div class="tester-content">
-        <div id="staff-seasonal-fx"></div>
-        
         <a href="index.html" id="testerCloseBtn" class="tester-close" aria-label="Back to Site">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -355,7 +363,8 @@
                 <div style="display: flex; flex-direction: column; gap: 16px;">
                     <input type="email" id="testerEmail" class="tester-input" placeholder="Email address" aria-label="Email">
                     <input type="password" id="testerPass" class="tester-input" placeholder="Password" aria-label="Password">
-                    <button id="testerLoginBtn" class="tester-btn" style="background: var(--accent); color: #0B0E14; padding: 14px; margin-top: 8px;">Log In</button>
+                    <!-- Added type="button" to prevent mobile form submission refreshing the app -->
+                    <button id="testerLoginBtn" type="button" class="tester-btn" style="background: var(--accent); color: #0B0E14; padding: 14px; margin-top: 8px;">Log In</button>
                     <div id="testerError" class="tester-error"></div>
                 </div>
             </div>
@@ -726,6 +735,14 @@
         }
     };
 
+    // Catch silent mobile WebView errors to help debug Median
+    window.addEventListener('error', function(e) {
+        console.error('WebView Error:', e.message);
+        if (e.message.toLowerCase().includes('network') || e.message.toLowerCase().includes('supabase')) {
+            showToast('App Error: Check Median network/local storage settings.');
+        }
+    });
+
     const originalPlay = HTMLMediaElement.prototype.play;
     HTMLMediaElement.prototype.play = function() {
         if (this.id === 'havenAmbientAudio') {
@@ -905,8 +922,8 @@
         }
     }
     enforceFullScreenLayout();
-    setInterval(enforceFullScreenLayout, 500); 
     window.addEventListener('resize', enforceFullScreenLayout);
+    window.addEventListener('orientationchange', enforceFullScreenLayout);
 
     // 9. Theme Switcher
     function applyHavenTheme(themeName) {
