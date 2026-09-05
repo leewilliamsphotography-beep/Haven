@@ -274,32 +274,101 @@ const AuthModule=(function(){
 })();
 
 const TesterModule=(function(){
-    const m=document.getElementById('testerModal'), la=document.getElementById('testerLogin'), ma=document.getElementById('testerMenu'), emailInput=document.getElementById('testerEmail'), pi=document.getElementById('testerPass'), et=document.getElementById('testerError'), gearBtn=document.getElementById('testerOpenBtn'), footerLogin=document.getElementById('footerStaffLogin'), loginBtn=document.getElementById('testerLoginBtn');
+    const m=document.getElementById('testerModal'),
+          la=document.getElementById('testerLogin'),
+          ma=document.getElementById('testerMenu'),
+          emailInput=document.getElementById('testerEmail'),
+          pi=document.getElementById('testerPass'),
+          et=document.getElementById('testerError'),
+          gearBtn=document.getElementById('testerOpenBtn'),
+          footerLogin=document.getElementById('footerStaffLogin'),
+          loginBtn=document.getElementById('testerLoginBtn');
+    
     let isMenuLoaded = false; 
-    function o(){m.classList.add('active');et.textContent='';checkAuthState();}
-    function c(){m.classList.remove('active');}
-    async function login(){
-        const email=emailInput.value.trim(); const pass=pi.value;
-        if(!email||!pass){et.textContent='Please enter both email and password.';return;}
-        loginBtn.textContent='Verifying...'; loginBtn.disabled=true; et.textContent='';
-        try{const{data,error}=await supabaseClient.auth.signInWithPassword({email:email,password:pass});if(error) throw error;showMenu();}catch(err){et.textContent='Login failed: '+err.message;loginBtn.textContent='Log In';loginBtn.disabled=false;}
+
+    function o(){
+        m.classList.add('active');
+        et.textContent='';
+        checkAuthState();
     }
-    async function logout(){await supabaseClient.auth.signOut();showLogin();c();}
+    function c(){
+        m.classList.remove('active');
+    }
+    
+    async function login(){
+        const sb = window.supabaseClient; // Bulletproof scope reference
+        if (!sb) {
+            et.textContent = 'Error: Database connection not loaded.';
+            return;
+        }
+        
+        const email=emailInput.value.trim();
+        const pass=pi.value;
+        if(!email||!pass){
+            et.textContent='Please enter both email and password.';
+            return;
+        }
+        loginBtn.textContent='Verifying...';
+        loginBtn.disabled=true;
+        et.textContent='';
+        try{
+            const{data,error}=await sb.auth.signInWithPassword({email:email,password:pass});
+            if(error) throw error;
+            // The onAuthStateChange listener will call showMenu() automatically
+        }catch(err){
+            et.textContent='Login failed: '+err.message;
+            loginBtn.textContent='Log In';
+            loginBtn.disabled=false;
+        }
+    }
+    
+    async function logout(){
+        const sb = window.supabaseClient;
+        if (sb) await sb.auth.signOut();
+        showLogin();
+        c();
+    }
+    
     async function showMenu(){
-        if(isMenuLoaded) return; isMenuLoaded = true;
+        if(isMenuLoaded) return;
+        isMenuLoaded = true;
+        
         try {
-            la.style.display='none'; ma.style.display='flex'; 
-            if(gearBtn) gearBtn.classList.add('show'); if(footerLogin) footerLogin.style.display='none';
-            loginBtn.textContent='Log In'; loginBtn.disabled=false;
-            const { data: { session } } = await supabaseClient.auth.getSession(); const user=session?.user; const userRole=user?.user_metadata?.role;
-            const menuTabBtn=document.querySelector('button[data-tab="menu"]');
-            if(menuTabBtn){if(userRole==='chef'||userRole==='admin'){menuTabBtn.style.display='flex';if(typeof MenuModule!=='undefined') MenuModule.loadAdminMenu();}else{menuTabBtn.style.display='none';}}
-            const adminThemes=document.getElementById('adminOnlyThemes'); if(adminThemes) adminThemes.style.display=(userRole==='admin')?'block':'none';
-            const maintBtn=document.getElementById('toggleMaintenanceBtn'); if(maintBtn) maintBtn.style.display=(userRole==='admin')?'block':'none';
-            const staffTabBtn=document.getElementById('staffTabBtn'); if(staffTabBtn) staffTabBtn.style.display=(userRole==='admin')?'flex':'none';
-            const userId = user ? user.id : 'default'; const staffThemeKey = `th-staff-theme-${userId}`; const savedTheme = safeGet(staffThemeKey) || 'staff-dark';
+            la.style.display='none';
+            ma.style.display='flex'; 
+            if(gearBtn) gearBtn.classList.add('show');
+            if(footerLogin) footerLogin.style.display='none';
+            loginBtn.textContent='Log In';
+            loginBtn.disabled=false;
             
-            // Use the global applyHavenTheme function so it syncs with the iframe
+            const sb = window.supabaseClient;
+            const { data: { session } } = await sb.auth.getSession();
+            const user=session?.user;
+            const userRole=user?.user_metadata?.role;
+            
+            const menuTabBtn=document.querySelector('button[data-tab="menu"]');
+            if(menuTabBtn){
+                if(userRole==='chef'||userRole==='admin'){
+                    menuTabBtn.style.display='flex';
+                    if(typeof MenuModule!=='undefined') MenuModule.loadAdminMenu();
+                }else{
+                    menuTabBtn.style.display='none';
+                }
+            }
+            
+            const adminThemes=document.getElementById('adminOnlyThemes');
+            if(adminThemes) adminThemes.style.display=(userRole==='admin')?'block':'none';
+            const maintBtn=document.getElementById('toggleMaintenanceBtn');
+            if(maintBtn) maintBtn.style.display=(userRole==='admin')?'block':'none';
+            
+            const staffTabBtn=document.getElementById('staffTabBtn');
+            if(staffTabBtn) staffTabBtn.style.display=(userRole==='admin')?'flex':'none';
+            
+            const userId = user ? user.id : 'default';
+            const staffThemeKey = `th-staff-theme-${userId}`;
+            const savedTheme = safeGet(staffThemeKey) || 'staff-dark';
+            
+            // Use global theme function if available, fallback to manual
             if (typeof window.applyHavenTheme === 'function') {
                 window.applyHavenTheme(savedTheme);
             } else {
@@ -324,7 +393,7 @@ const TesterModule=(function(){
                     btn.classList.add('theme-btn-active'); 
                 };
             });
-            document.querySelectorAll('.staff-theme-btn').forEach(btn => { if(btn.dataset.theme === savedTheme) btn.classList.add('theme-btn-active'); else btn.classList.remove('theme-btn-active'); btn.onclick = () => { const newTheme = btn.dataset.theme; document.body.classList.remove('staff-dark', 'staff-light', 'staff-warm', 'staff-ocean', 'staff-forest', 'staff-sunset'); document.body.classList.add(newTheme); safeSet(staffThemeKey, newTheme); if(typeof ToastModule!=='undefined') ToastModule.show('Dashboard theme saved!'); document.querySelectorAll('.staff-theme-btn').forEach(b => b.classList.remove('theme-btn-active')); btn.classList.add('theme-btn-active'); }; });
+
             if(typeof FeaturedEventsModule!=='undefined') FeaturedEventsModule.loadAdminFeatured();
             if(typeof FilmNightModule!=='undefined') FilmNightModule.loadFilms();
             if(typeof LayoutModule!=='undefined') LayoutModule.onTesterOpen();
@@ -336,16 +405,174 @@ const TesterModule=(function(){
             if(typeof CelebrationModule!=='undefined') CelebrationModule.loadAdminCelebrations();
             if(typeof CommunityModule!=='undefined') CommunityModule.loadAdminCommunity();
             if(typeof MenuModule!=='undefined' && (userRole==='chef'||userRole==='admin')) MenuModule.loadAdminMenu();
+            
             setTimeout(() => { renderPhotoAdmin(); }, 500);
-        } catch(e) { console.error("Dashboard Load Error:", e); isMenuLoaded = false; loginBtn.textContent='Log In'; loginBtn.disabled=false; et.textContent='Error loading dashboard: ' + e.message; }
+            
+        } catch(e) {
+            console.error("Dashboard Load Error:", e);
+            isMenuLoaded = false;
+            loginBtn.textContent='Log In';
+            loginBtn.disabled=false;
+            et.textContent='Error loading dashboard: ' + e.message;
+        }
     }
-    function showLogin(){ isMenuLoaded = false; la.style.display='flex'; ma.style.display='none'; if(gearBtn) gearBtn.classList.remove('show'); if(footerLogin) footerLogin.style.display='block'; pi.value=''; emailInput.value=''; loginBtn.textContent='Log In'; loginBtn.disabled=false; }
-    async function checkAuthState(){ try { const{data:{session}}=await supabaseClient.auth.getSession(); if(session){ showMenu(); } else { showLogin(); } } catch(e) { showLogin(); } }
-    function ss(s, e){ const b=document.body; b.classList.remove('season-winter','season-spring','season-summer','season-autumn','theme-dark','theme-warm','theme-soft','theme-high-contrast','palette-ocean','palette-sunset','palette-berry'); safeSet('th-theme','light'); safeSet('th-palette','nature'); if(s==='auto'){const cs=SeasonalModule.getCurrentSeason();b.classList.add('season-'+cs);generateSeasonalBackground(cs);}else{b.classList.add('season-'+s);generateSeasonalBackground(s);} document.querySelectorAll('.tester-season-btn').forEach(btn=>btn.classList.remove('active')); if(e && e.target) e.target.classList.add('active'); document.querySelectorAll('.theme-btn').forEach(btn=>btn.setAttribute('aria-pressed',btn.dataset.theme==='light')); }
-    function bc(){ const inp=document.getElementById('broadcastInput'),msg=inp.value.trim(); if(!msg) return; fetch('https://ntfy.sh/tinkers-hatch-live',{method:'POST',body:msg}).then(()=>{inp.value='';ToastModule.show('Message broadcasted successfully!');}).catch(err=>ToastModule.show('Error broadcasting message.')); }
-    async function uploadPhoto(){ const fileInput=document.getElementById('photoUploadInput'); const file=fileInput.files[0]; if(!file){ToastModule.show("Please select a file first.");return;} if(!file.type.startsWith('image/')){ToastModule.show("Please upload an image file.");return;} ToastModule.show("Uploading..."); const captionInput=document.getElementById('photoCaptionInput'); let caption=captionInput?captionInput.value.trim():''; if(caption){caption='_caption_'+caption.replace(/[^a-zA-Z0-9 ]/g,'').replace(/\s+/g,'-');} const fileName=`photo_${Date.now()}${caption}_${file.name.replace(/\s+/g,'_')}`; const{data,error}=await supabaseClient.storage.from('gallery').upload(fileName,file); if(error){ToastModule.show("Upload failed: "+error.message);}else{ToastModule.show("Photo uploaded successfully!"); fetch('https://ntfy.sh/tinkers-hatch-live',{method:'POST',body:'New photos added to the gallery!'}).catch(()=>{}); fileInput.value=''; if(captionInput) captionInput.value=''; if(typeof LightboxModule!=='undefined') LightboxModule.loadImages(); renderPhotoAdmin(); }}
-    async function renderPhotoAdmin(){ const ac=document.getElementById('adminPhotoContainer'); if(!ac) return; ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">Loading photos...</p>'; try{const{data,error}=await supabaseClient.storage.from('gallery').list('',{limit:100,offset:0,sortBy:{column:'created_at',order:'desc'}}); if(error) throw error; if(!data||data.length===0){ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No photos found.</p>';return;} const files=data.filter(file=>!file.name.startsWith('.')); if(files.length===0){ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No photos found.</p>';return;} ac.innerHTML=files.map(file => { const { data: urlData } = supabaseClient.storage.from('gallery').getPublicUrl(file.name); const imgUrl = urlData.publicUrl; return `<div class="admin-film-item" style="padding: 8px 12px; display: flex; align-items: center; gap: 12px;"><img src="${imgUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; flex-shrink: 0;"><span style="font-size:.8rem;font-weight:700;word-break:break-all; flex: 1;">${file.name}</span><button class="tester-btn del-photo-btn" data-path="${file.name}" style="width:auto;margin:0;padding:4px 8px;font-size:0.7rem;background:var(--terracotta);">Delete</button></div>`;}).join(''); ac.querySelectorAll('.del-photo-btn').forEach(btn=>btn.addEventListener('click',async(e)=>{ const path=e.target.dataset.path; if(confirm('Are you sure you want to delete this photo?')){ try{const{error:delError}=await supabaseClient.storage.from('gallery').remove([path]); if(delError) throw delError; ToastModule.show('Photo deleted!'); renderPhotoAdmin(); if(typeof LightboxModule!=='undefined') LightboxModule.loadImages(); }catch(err){ ToastModule.show('Error deleting photo.'); } } })); }catch(err){ ac.innerHTML='<p class="text-sm" style="color: var(--terracotta);">Error loading photos.</p>'; } }
-    function init(){ const modalExists = document.getElementById('testerModal'); if(!modalExists) return; if(gearBtn) gearBtn.addEventListener('click',o); if(footerLogin) footerLogin.addEventListener('click',o); const closeBtn = document.getElementById('testerCloseBtn'); if(closeBtn) closeBtn.addEventListener('click',c); const loginBtn = document.getElementById('testerLoginBtn'); if(loginBtn) loginBtn.addEventListener('click', function(e) { e.preventDefault(); login(); }); const logoutBtn = document.getElementById('testerLogoutBtn'); if(logoutBtn) logoutBtn.addEventListener('click',logout); if(pi) pi.addEventListener('keypress',e=>{ if(e.key==='Enter'){ login(); } }); if(emailInput) emailInput.addEventListener('keypress',e=>{ if(e.key==='Enter'){ pi.focus(); } }); document.querySelectorAll('.tester-season-btn').forEach(b=>b.addEventListener('click',e=>ss(e.target.dataset.season, e))); const broadcastBtn = document.getElementById('broadcastBtn'); if(broadcastBtn) broadcastBtn.addEventListener('click',bc); const uploadBtn = document.getElementById('uploadPhotoBtn'); if(uploadBtn) uploadBtn.addEventListener('click',uploadPhoto); m.addEventListener('click',e=>{ if(e.target===m){ c(); } }); supabaseClient.auth.onAuthStateChange((event,session)=>{ if(event==='SIGNED_IN'){ showMenu(); } else if(event==='SIGNED_OUT'){ showLogin(); } }); showLogin(); checkAuthState(); }
+    
+    function showLogin(){
+        isMenuLoaded = false;
+        la.style.display='flex'; 
+        ma.style.display='none';
+        if(gearBtn) gearBtn.classList.remove('show');
+        if(footerLogin) footerLogin.style.display='block';
+        pi.value='';
+        emailInput.value='';
+        loginBtn.textContent='Log In';
+        loginBtn.disabled=false;
+    }
+    
+    async function checkAuthState(){
+        try {
+            const sb = window.supabaseClient;
+            if (!sb) return showLogin();
+            const{data:{session}}=await sb.auth.getSession();
+            if(session){ showMenu(); } else { showLogin(); }
+        } catch(e) {
+            showLogin();
+        }
+    }
+    
+    function ss(s, e){
+        const b=document.body;
+        b.classList.remove('season-winter','season-spring','season-summer','season-autumn','theme-dark','theme-warm','theme-soft','theme-high-contrast','palette-ocean','palette-sunset','palette-berry');
+        safeSet('th-theme','light');
+        safeSet('th-palette','nature');
+        if(s==='auto'){
+            const cs=SeasonalModule.getCurrentSeason();
+            b.classList.add('season-'+cs);
+            generateSeasonalBackground(cs);
+        }else{
+            b.classList.add('season-'+s);
+            generateSeasonalBackground(s);
+        }
+        document.querySelectorAll('.tester-season-btn').forEach(btn=>btn.classList.remove('active'));
+        if(e && e.target) e.target.classList.add('active');
+        document.querySelectorAll('.theme-btn').forEach(btn=>btn.setAttribute('aria-pressed',btn.dataset.theme==='light'));
+    }
+    
+    function bc(){
+        const inp=document.getElementById('broadcastInput'),msg=inp.value.trim();
+        if(!msg) return;
+        fetch('https://ntfy.sh/tinkers-hatch-live',{method:'POST',body:msg})
+            .then(()=>{inp.value='';ToastModule.show('Message broadcasted successfully!');})
+            .catch(err=>ToastModule.show('Error broadcasting message.'));
+    }
+    
+    async function uploadPhoto(){
+        const sb = window.supabaseClient;
+        const fileInput=document.getElementById('photoUploadInput');
+        const file=fileInput.files[0];
+        if(!file){ToastModule.show("Please select a file first.");return;}
+        if(!file.type.startsWith('image/')){ToastModule.show("Please upload an image file.");return;}
+        ToastModule.show("Uploading...");
+        const captionInput=document.getElementById('photoCaptionInput');
+        let caption=captionInput?captionInput.value.trim():'';
+        if(caption){caption='_caption_'+caption.replace(/[^a-zA-Z0-9 ]/g,'').replace(/\s+/g,'-');}
+        const fileName=`photo_${Date.now()}${caption}_${file.name.replace(/\s+/g,'_')}`;
+        const{data,error}=await sb.storage.from('gallery').upload(fileName,file);
+        if(error){
+            ToastModule.show("Upload failed: "+error.message);
+        }else{
+            ToastModule.show("Photo uploaded successfully!");
+            fetch('https://ntfy.sh/tinkers-hatch-live',{method:'POST',body:'New photos added to the gallery!'}).catch(()=>{});
+            fileInput.value='';
+            if(captionInput) captionInput.value='';
+            if(typeof LightboxModule!=='undefined') LightboxModule.loadImages();
+            renderPhotoAdmin();
+        }
+    }
+    
+    async function renderPhotoAdmin(){
+        const sb = window.supabaseClient;
+        const ac=document.getElementById('adminPhotoContainer');
+        if(!ac) return;
+        ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">Loading photos...</p>';
+        try{
+            const{data,error}=await sb.storage.from('gallery').list('',{limit:100,offset:0,sortBy:{column:'created_at',order:'desc'}});
+            if(error) throw error;
+            if(!data||data.length===0){ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No photos found.</p>';return;}
+            const files=data.filter(file=>!file.name.startsWith('.'));
+            if(files.length===0){ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No photos found.</p>';return;}
+            
+            ac.innerHTML=files.map(file => {
+                const { data: urlData } = sb.storage.from('gallery').getPublicUrl(file.name);
+                const imgUrl = urlData.publicUrl;
+                return `<div class="admin-film-item" style="padding: 8px 12px; display: flex; align-items: center; gap: 12px;">
+                            <img src="${imgUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; flex-shrink: 0;">
+                            <span style="font-size:.8rem;font-weight:700;word-break:break-all; flex: 1;">${file.name}</span>
+                            <button class="tester-btn del-photo-btn" data-path="${file.name}" style="width:auto;margin:0;padding:4px 8px;font-size:0.7rem;background:var(--terracotta);">Delete</button>
+                        </div>`;
+            }).join('');
+            
+            ac.querySelectorAll('.del-photo-btn').forEach(btn=>btn.addEventListener('click',async(e)=>{
+                const path=e.target.dataset.path;
+                if(confirm('Are you sure you want to delete this photo?')){
+                    try{
+                        const{error:delError}=await sb.storage.from('gallery').remove([path]);
+                        if(delError) throw delError;
+                        ToastModule.show('Photo deleted!');
+                        renderPhotoAdmin();
+                        if(typeof LightboxModule!=='undefined') LightboxModule.loadImages();
+                    }catch(err){
+                        ToastModule.show('Error deleting photo.');
+                    }
+                }
+            }));
+        }catch(err){
+            ac.innerHTML='<p class="text-sm" style="color: var(--terracotta);">Error loading photos.</p>';
+        }
+    }
+    
+    function init(){
+        const modalExists = document.getElementById('testerModal');
+        if(!modalExists) return; 
+
+        if(gearBtn) gearBtn.addEventListener('click',o);
+        if(footerLogin) footerLogin.addEventListener('click',o);
+        
+        const closeBtn = document.getElementById('testerCloseBtn');
+        if(closeBtn) closeBtn.addEventListener('click',c);
+        
+        if(loginBtn) loginBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            login();
+        });
+        
+        const logoutBtn = document.getElementById('testerLogoutBtn');
+        if(logoutBtn) logoutBtn.addEventListener('click',logout);
+        
+        if(pi) pi.addEventListener('keypress',e=>{ if(e.key==='Enter'){ login(); } });
+        if(emailInput) emailInput.addEventListener('keypress',e=>{ if(e.key==='Enter'){ pi.focus(); } });
+        
+        document.querySelectorAll('.tester-season-btn').forEach(b=>b.addEventListener('click',e=>ss(e.target.dataset.season, e)));
+        
+        const broadcastBtn = document.getElementById('broadcastBtn');
+        if(broadcastBtn) broadcastBtn.addEventListener('click',bc);
+        
+        const uploadBtn = document.getElementById('uploadPhotoBtn');
+        if(uploadBtn) uploadBtn.addEventListener('click',uploadPhoto);
+        
+        m.addEventListener('click',e=>{ if(e.target===m){ c(); } });
+        
+        const sb = window.supabaseClient;
+        if (sb) {
+            sb.auth.onAuthStateChange((event,session)=>{
+                if(event==='SIGNED_IN'){ showMenu(); }
+                else if(event==='SIGNED_OUT'){ showLogin(); }
+            });
+        }
+        
+        showLogin(); 
+        checkAuthState();
+    }
     return{init};
 })();
 
