@@ -329,7 +329,7 @@ const TesterModule=(function(){
         c();
     }
     
-    async function showMenu(){
+        async function showMenu(){
         if(isMenuLoaded) return;
         isMenuLoaded = true;
         
@@ -341,7 +341,10 @@ const TesterModule=(function(){
             loginBtn.textContent='Log In';
             loginBtn.disabled=false;
             
-            const sb = window.supabaseClient;
+            // CRITICAL FIX: Force sync the lexical supabaseClient with the authenticated window.supabaseClient
+            supabaseClient = window.supabaseClient;
+            const sb = supabaseClient;
+            
             const { data: { session } } = await sb.auth.getSession();
             const user=session?.user;
             const userRole=user?.user_metadata?.role;
@@ -368,7 +371,6 @@ const TesterModule=(function(){
             const staffThemeKey = `th-staff-theme-${userId}`;
             const savedTheme = safeGet(staffThemeKey) || 'staff-dark';
             
-            // Use global theme function if available, fallback to manual
             if (typeof window.applyHavenTheme === 'function') {
                 window.applyHavenTheme(savedTheme);
             } else {
