@@ -756,6 +756,24 @@
     }
     initStaffSeasonFX();
     document.querySelectorAll('.tester-season-btn').forEach(btn => { btn.addEventListener('click', initStaffSeasonFX); });
+        // === FORCE REFRESH ADMIN LISTS AFTER DELETE (Mobile Fix) ===
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('button');
+        if (btn && (btn.classList.contains('del-event-btn') || btn.classList.contains('del-celeb-btn') || btn.classList.contains('del-update-btn') || btn.classList.contains('del-photo-btn') || btn.classList.contains('del-film-btn') || btn.classList.contains('del-community-btn') || btn.classList.contains('del-enq-btn') || btn.classList.contains('del-featured-btn'))) {
+            
+            // Wait 500ms for the database delete to finish, then force refresh the lists
+            setTimeout(() => {
+                if (typeof EventsModule !== 'undefined') EventsModule.loadAdminEvents();
+                if (typeof CelebrationModule !== 'undefined') CelebrationModule.loadAdminCelebrations();
+                if (typeof DatabaseModule !== 'undefined') DatabaseModule.loadUpdates();
+                if (typeof FilmNightModule !== 'undefined') FilmNightModule.loadFilms();
+                if (typeof CommunityModule !== 'undefined') CommunityModule.loadAdminCommunity();
+                if (typeof EnquiriesModule !== 'undefined') EnquiriesModule.loadAdminEnquiries();
+                if (typeof FeaturedEventsModule !== 'undefined') FeaturedEventsModule.loadAdminFeatured();
+                if (typeof TesterModule !== 'undefined' && typeof TesterModule.renderPhotoAdmin === 'function') TesterModule.renderPhotoAdmin();
+            }, 500);
+        }
+    }, true);
 </script>
 </body>
 </html>
