@@ -774,6 +774,41 @@
             }, 500);
         }
     }, true);
+    // === FORCE REFRESH ADMIN LISTS AFTER ADD/SAVE (Mobile Fix) ===
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+
+        // Wait 1.5 seconds for the database insert to finish, then refresh the lists
+        if (btn.id === 'addEventBtn') {
+            setTimeout(() => { if (typeof EventsModule !== 'undefined') { EventsModule.loadAdminEvents(); EventsModule.loadEvents(); } }, 1500);
+        } 
+        else if (btn.id === 'saveMenuBtn') {
+            setTimeout(() => { if (typeof MenuModule !== 'undefined') MenuModule.loadAdminMenu(); }, 1500);
+        }
+        else if (btn.id === 'addWilfBlogBtn') {
+            // Assuming you have a WilfBlogModule load function, if not, this is safe.
+            setTimeout(() => { if (typeof WilfModule !== 'undefined' && WilfModule.loadStatus) WilfModule.loadStatus(); }, 1500);
+        }
+        else if (btn.id === 'addUpdateBtn') {
+            setTimeout(() => { if (typeof DatabaseModule !== 'undefined') DatabaseModule.loadUpdates(); }, 1500);
+        }
+        else if (btn.id === 'addFilmBtn') {
+            setTimeout(() => { if (typeof FilmNightModule !== 'undefined') FilmNightModule.loadFilms(); }, 1500);
+        }
+        else if (btn.id === 'addCommunityBtn') {
+            setTimeout(() => { if (typeof CommunityModule !== 'undefined') { CommunityModule.loadAdminCommunity(); CommunityModule.loadCommunity(); } }, 1500);
+        }
+        else if (btn.id === 'addCelebBtn') {
+            setTimeout(() => { if (typeof CelebrationModule !== 'undefined') { CelebrationModule.loadAdminCelebrations(); CelebrationModule.loadCelebrations(); } }, 1500);
+        }
+        else if (btn.id === 'addFeaturedBtn') {
+            setTimeout(() => { if (typeof FeaturedEventsModule !== 'undefined') { FeaturedEventsModule.loadAdminFeatured(); FeaturedEventsModule.loadFeatured(); } }, 1500);
+        }
+        else if (btn.id === 'saveBriefingBtn') {
+            setTimeout(() => { if (typeof BriefingModule !== 'undefined') BriefingModule.loadBriefing(); }, 1500);
+        }
+    }, true);
 </script>
 </body>
 </html>
