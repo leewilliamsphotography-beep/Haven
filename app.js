@@ -644,55 +644,69 @@ function initCustomFeatures() {
     }, 1500);
 }
 
-// ==========================================
-// ==========================================
 // BULLETPROOF INITIALIZATION SEQUENCE
 // ==========================================
+function safeInit(name, fn) {
+    try {
+        fn();
+    } catch (e) {
+        console.error(`Module ${name} crashed:`, e);
+    }
+}
+
 function initializeAppModules() {
     console.log("Initializing Haven Portal Modules...");
     
-    // 1. Initialize Login FIRST so it never breaks
-    try {
-        TesterModule.init();
-    } catch (e) {
-        console.error("Login Module Crash:", e);
-        const errDiv = document.getElementById('testerError');
-        if(errDiv) errDiv.textContent = "Login Error: " + e.message;
-    }
+    // 1. Initialize Login FIRST
+    safeInit('Tester', () => TesterModule.init());
 
     // 2. Initialize the rest of the dashboard safely
-    try {
-        LayoutModule.init();SplashModule.init();SideNavModule.init();AccessibilityModule.init();QuickJumpModule.init();TimeModule.init();ToastModule.init();ReadAloudModule.init();AmbientAudioModule.init();SensoryModule.init();BackToTopModule.init();SeasonalModule.init();FaviconModule.init();ThemeModule.init();PaletteModule.init();FontSizeModule.init();DyslexiaModule.init();HapticModule.init();BionicModule.init();NextSectionModule.init();RevealModule.init();MoodModule.init();LightboxModule.init();FooterA11yModule.init();ProgressModule.init();SummerEffectsModule.init();AuthModule.init();DatabaseModule.init();FilmNightModule.init();ParallaxModule.init();EventsModule.init();WilfModule.init();MenuModule.init();CommunityModule.init();EnquiriesModule.init();BriefingModule.init();MaintenanceModule.init();WeatherModule.init();CelebrationModule.init();VibeModule.init();GoldenHourModule.init();FeaturedEventsModule.init();StaffModule.init();
-        
-        const PolishModule = (function () {
-          function initReveal() {
-            const items = document.querySelectorAll('.reveal');
-            if (!items.length) return;
-            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window);
-            if (reduceMotion) { items.forEach(el => el.classList.add('is-visible')); return; }
-            items.forEach(el => el.classList.add('pre-reveal'));
-            const observer = new IntersectionObserver(entries => {
-              entries.forEach(entry => {
-                if (entry.isIntersecting) { entry.target.classList.add('is-visible'); observer.unobserve(entry.target); }
-              });
-            }, { threshold: 0.15 });
-            items.forEach(el => observer.observe(el));
-          }
-          function init() { initReveal(); }
-          return { init };
-        })();
-        PolishModule.init();
-        initCustomFeatures();
-        console.log("Haven Portal Modules Loaded Successfully.");
-    } catch (e) {
-        console.error("DASHBOARD MODULE CRASH:", e);
-        // Show the error on the login screen so we can see what's broken
-        const errDiv = document.getElementById('testerError');
-        if(errDiv) {
-            errDiv.style.color = 'var(--danger)';
-            errDiv.textContent = "App Crash: " + e.message;
-        }
-    }
+    safeInit('Layout', () => LayoutModule.init());
+    safeInit('Splash', () => SplashModule.init());
+    safeInit('SideNav', () => SideNavModule.init());
+    safeInit('Accessibility', () => AccessibilityModule.init());
+    safeInit('QuickJump', () => QuickJumpModule.init());
+    safeInit('Time', () => TimeModule.init());
+    safeInit('Toast', () => ToastModule.init());
+    safeInit('ReadAloud', () => ReadAloudModule.init());
+    safeInit('AmbientAudio', () => AmbientAudioModule.init());
+    safeInit('Sensory', () => SensoryModule.init());
+    safeInit('BackToTop', () => BackToTopModule.init());
+    safeInit('Seasonal', () => SeasonalModule.init());
+    safeInit('Favicon', () => FaviconModule.init());
+    safeInit('Theme', () => ThemeModule.init());
+    safeInit('Palette', () => PaletteModule.init());
+    safeInit('FontSize', () => FontSizeModule.init());
+    safeInit('Dyslexia', () => DyslexiaModule.init());
+    safeInit('Haptic', () => HapticModule.init());
+    safeInit('Bionic', () => BionicModule.init());
+    safeInit('NextSection', () => NextSectionModule.init());
+    safeInit('Reveal', () => RevealModule.init());
+    safeInit('Mood', () => MoodModule.init());
+    safeInit('Lightbox', () => LightboxModule.init());
+    safeInit('FooterA11y', () => FooterA11yModule.init());
+    safeInit('Progress', () => ProgressModule.init());
+    safeInit('SummerEffects', () => SummerEffectsModule.init());
+    safeInit('Auth', () => AuthModule.init());
+    safeInit('Database', () => DatabaseModule.init());
+    safeInit('FilmNight', () => FilmNightModule.init());
+    safeInit('Parallax', () => ParallaxModule.init());
+    safeInit('Events', () => EventsModule.init());
+    safeInit('Wilf', () => WilfModule.init());
+    safeInit('Menu', () => MenuModule.init());
+    safeInit('Community', () => CommunityModule.init());
+    safeInit('Enquiries', () => EnquiriesModule.init());
+    safeInit('Briefing', () => BriefingModule.init());
+    safeInit('Maintenance', () => MaintenanceModule.init());
+    safeInit('Weather', () => WeatherModule.init());
+    safeInit('Celebration', () => CelebrationModule.init());
+    safeInit('Vibe', () => VibeModule.init());
+    safeInit('GoldenHour', () => GoldenHourModule.init());
+    safeInit('FeaturedEvents', () => FeaturedEventsModule.init());
+    safeInit('Staff', () => StaffModule.init());
+    
+    safeInit('CustomFeatures', () => initCustomFeatures());
+    console.log("Haven Portal Modules Loaded Successfully.");
 }
 
 // Safe boot wrapper
