@@ -645,12 +645,24 @@ function initCustomFeatures() {
 }
 
 // ==========================================
+// ==========================================
 // BULLETPROOF INITIALIZATION SEQUENCE
 // ==========================================
 function initializeAppModules() {
     console.log("Initializing Haven Portal Modules...");
+    
+    // 1. Initialize Login FIRST so it never breaks
     try {
-        LayoutModule.init();SplashModule.init();SideNavModule.init();AccessibilityModule.init();QuickJumpModule.init();TimeModule.init();ToastModule.init();ReadAloudModule.init();AmbientAudioModule.init();SensoryModule.init();BackToTopModule.init();SeasonalModule.init();FaviconModule.init();ThemeModule.init();PaletteModule.init();FontSizeModule.init();DyslexiaModule.init();HapticModule.init();BionicModule.init();NextSectionModule.init();RevealModule.init();MoodModule.init();LightboxModule.init();FooterA11yModule.init();ProgressModule.init();SummerEffectsModule.init();AuthModule.init();TesterModule.init();DatabaseModule.init();FilmNightModule.init();ParallaxModule.init();EventsModule.init();WilfModule.init();MenuModule.init();CommunityModule.init();EnquiriesModule.init();BriefingModule.init();MaintenanceModule.init();WeatherModule.init();CelebrationModule.init();VibeModule.init();GoldenHourModule.init();FeaturedEventsModule.init();StaffModule.init();
+        TesterModule.init();
+    } catch (e) {
+        console.error("Login Module Crash:", e);
+        const errDiv = document.getElementById('testerError');
+        if(errDiv) errDiv.textContent = "Login Error: " + e.message;
+    }
+
+    // 2. Initialize the rest of the dashboard safely
+    try {
+        LayoutModule.init();SplashModule.init();SideNavModule.init();AccessibilityModule.init();QuickJumpModule.init();TimeModule.init();ToastModule.init();ReadAloudModule.init();AmbientAudioModule.init();SensoryModule.init();BackToTopModule.init();SeasonalModule.init();FaviconModule.init();ThemeModule.init();PaletteModule.init();FontSizeModule.init();DyslexiaModule.init();HapticModule.init();BionicModule.init();NextSectionModule.init();RevealModule.init();MoodModule.init();LightboxModule.init();FooterA11yModule.init();ProgressModule.init();SummerEffectsModule.init();AuthModule.init();DatabaseModule.init();FilmNightModule.init();ParallaxModule.init();EventsModule.init();WilfModule.init();MenuModule.init();CommunityModule.init();EnquiriesModule.init();BriefingModule.init();MaintenanceModule.init();WeatherModule.init();CelebrationModule.init();VibeModule.init();GoldenHourModule.init();FeaturedEventsModule.init();StaffModule.init();
         
         const PolishModule = (function () {
           function initReveal() {
@@ -673,9 +685,40 @@ function initializeAppModules() {
         initCustomFeatures();
         console.log("Haven Portal Modules Loaded Successfully.");
     } catch (e) {
-        console.error("FATAL ERROR DURING INITIALIZATION:", e);
+        console.error("DASHBOARD MODULE CRASH:", e);
+        // Show the error on the login screen so we can see what's broken
+        const errDiv = document.getElementById('testerError');
+        if(errDiv) {
+            errDiv.style.color = 'var(--danger)';
+            errDiv.textContent = "App Crash: " + e.message;
+        }
     }
 }
+
+// Safe boot wrapper
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+        supabaseClient = window.supabase.createClient('https://bsbwrvqevtoujfvcvvju.supabase.co', 'sb_publishable_c6IrevCpSel1njeKV0PhEA_Rbw2UdAx');
+        window.supabaseClient = supabaseClient;
+        initializeAppModules();
+    } else {
+        let attempts = 0;
+        const supabaseWait = setInterval(function() {
+            attempts++;
+            if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+                clearInterval(supabaseWait);
+                supabaseClient = window.supabase.createClient('https://bsbwrvqevtoujfvcvvju.supabase.co', 'sb_publishable_c6IrevCpSel1njeKV0PhEA_Rbw2UdAx');
+                window.supabaseClient = supabaseClient;
+                initializeAppModules();
+            } else if (attempts > 100) {
+                clearInterval(supabaseWait);
+                console.error("Supabase CDN failed to load.");
+                const errDiv = document.getElementById('testerError');
+                if(errDiv) errDiv.textContent = "Network Error: Could not load login library.";
+            }
+        }, 100);
+    }
+});
 
 // Safe boot wrapper
 document.addEventListener('DOMContentLoaded', function() {
