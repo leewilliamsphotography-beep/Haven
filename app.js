@@ -75,15 +75,47 @@ const ToastModule=(function(){
         } else { ToastModule.show("Notifications are blocked in your browser settings."); }
     }
     function init(){
-        try{
-            const es=new EventSource('https://ntfy.sh/tinkers-hatch-live/sse');
-            es.addEventListener('message',e=>{ try { const d=JSON.parse(e.data); if(d.message) show(d.message); } catch(err){} });
-        }catch(e){console.error('SSE failed',e)}
-        if(notifBtn){ if("Notification" in window && Notification.permission==="granted"){ notifBtn.classList.add('active'); notifBtn.setAttribute('aria-pressed','true'); } notifBtn.addEventListener('click', requestPermission); }
+        const modalExists = document.getElementById('testerModal');
+        if(!modalExists) return; 
+
+        if(gearBtn) gearBtn.addEventListener('click',o);
+        if(footerLogin) footerLogin.addEventListener('click',o);
+        
+        const closeBtn = document.getElementById('testerCloseBtn');
+        if(closeBtn) closeBtn.addEventListener('click',c);
+        
+        // FIX: Removed duplicate "const loginBtn" which was crashing the script
+        if(loginBtn) loginBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            login();
+        });
+        
+        const logoutBtn = document.getElementById('testerLogoutBtn');
+        if(logoutBtn) logoutBtn.addEventListener('click',logout);
+        
+        if(pi) pi.addEventListener('keypress',e=>{ if(e.key==='Enter'){ login(); } });
+        if(emailInput) emailInput.addEventListener('keypress',e=>{ if(e.key==='Enter'){ pi.focus(); } });
+        
+        document.querySelectorAll('.tester-season-btn').forEach(b=>b.addEventListener('click',e=>ss(e.target.dataset.season, e)));
+        
+        const broadcastBtn = document.getElementById('broadcastBtn');
+        if(broadcastBtn) broadcastBtn.addEventListener('click',bc);
+        
+        const uploadBtn = document.getElementById('uploadPhotoBtn');
+        if(uploadBtn) uploadBtn.addEventListener('click',uploadPhoto);
+        
+        m.addEventListener('click',e=>{ if(e.target===m){ c(); } });
+        
+        supabaseClient.auth.onAuthStateChange((event,session)=>{
+            if(event==='SIGNED_IN'){ showMenu(); }
+            else if(event==='SIGNED_OUT'){ showLogin(); }
+        });
+        
+        showLogin(); 
+        checkAuthState();
     }
-    return{init,show};
+    return{init};
 })();
- 
 const SplashModule = (function () {
   function init() {
     const splash = document.getElementById('splash-screen');
