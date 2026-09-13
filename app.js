@@ -485,102 +485,48 @@ const TesterModule=(function(){
             .catch(err=>ToastModule.show('Error broadcasting message.'));
     }
     
-            async function uploadPhoto(){
-        const sb = window.supabaseClient;
-        const fileInput=document.getElementById('photoUploadInput');
-        const files = Array.from(fileInput.files);
-        
-        if(files.length === 0){
-            ToastModule.show("Please select at least one photo first.");
-            return;
-        }
-
-        const captionInput=document.getElementById('photoCaptionInput');
-        let caption=captionInput?captionInput.value.trim():'';
-        if(caption){caption='_caption_'+caption.replace(/[^a-zA-Z0-9 ]/g,'').replace(/\s+/g,'-');}
-
-        let successCount = 0;
-        let failCount = 0;
-
-        for(let i = 0; i < files.length; i++){
-            const file = files[i];
-            if(!file.type.startsWith('image/')){
-                failCount++;
-                continue;
-            }
-
-            ToastModule.show(`Uploading photo ${i + 1} of ${files.length}...`);
-            const safeName = file.name.replace(/\s+/g,'_');
-            const fileName=`photo_${Date.now()}_${i}${caption}_${safeName}`;
-            
-            try {
-                const { error } = await sb.storage.from('gallery').upload(fileName, file);
-                if(error) throw error;
-                successCount++;
-            } catch(err) {
-                failCount++;
-            }
-        }
-
-        if(successCount > 0){
-            ToastModule.show(`${successCount} photo(s) uploaded successfully!`);
-            fetch('https://ntfy.sh/tinkers-hatch-live',{method:'POST',body:'New photos added to the gallery!'}).catch(()=>{});
-            fileInput.value='';
-            if(captionInput) captionInput.value='';
-            const dropZone = document.getElementById('photoDropZone');
-            if(dropZone) dropZone.innerHTML = '<span id="photoDropText">Drag & drop photos here<br>or click to select</span>';
-            setTimeout(() => {
-                if(typeof LightboxModule!=='undefined') LightboxModule.loadImages();
-                renderPhotoAdmin();
-            }, 1500);
-        } else {
-            ToastModule.show("Upload failed. Please ensure you are selecting valid image files.");
-        }
+                // Compress image helper
+    function compressImage(file, maxWidth) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > maxWidth) {
+                        const ratio = maxWidth / width;
+                        width = maxWidth;
+                        height = height * ratio;
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    
+                    // Draw white background for transparent PNGs
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Convert to Blob (Universally supported)
+                    canvas.toBlob((blob) => {
+                        if (!blob) {
+                            return reject(new Error('Canvas to Blob conversion failed'));
+                        }
+                        resolve(blob);
+                    }, 'image/jpeg', 0.7);
+                };
+                img.onerror = () => reject(new Error('Image load error'));
+                img.src = event.target.result;
+            };
+            reader.onerror = () => reject(new Error('File read error'));
+            reader.readAsDataURL(file);
+        });
     }
-        async function renderPhotoAdmin(){
-        const sb = window.supabaseClient;
-        const ac=document.getElementById('adminPhotoContainer');
-        if(!ac) return;
-        ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">Loading photos...</p>';
-        try{
-            const{data,error}=await sb.storage.from('gallery').list('',{limit:100,offset:0,sortBy:{column:'created_at',order:'desc'}});
-            if(error) throw error;
-            if(!data||data.length===0){ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No photos found.</p>';return;}
-            const files=data.filter(file=>!file.name.startsWith('.'));
-            if(files.length===0){ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No photos found.</p>';return;}
-            
-            // Multi-Delete Toolbar
-            let toolbar = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;">
-                <label style="font-size:.8rem; display:flex; align-items:center; gap:8px; cursor:pointer; color: var(--fg);">
-                    <input type="checkbox" id="selectAllPhotos" style="width:16px; height:16px; cursor:pointer;"> Select All
-                </label>
-                <button id="deleteSelectedPhotosBtn" class="tester-btn" style="width:auto;margin:0;padding:6px 12px;font-size:0.7rem;background:var(--danger); color:#fff;">Remove Selected</button>
-            </div>`;
-            
-            ac.innerHTML = toolbar + files.map(file => {
-                const { data: urlData } = sb.storage.from('gallery').getPublicUrl(file.name);
-                const imgUrl = urlData.publicUrl;
-                return `<div class="admin-film-item" style="padding: 8px 12px; display: flex; align-items: center; gap: 12px;">
-                            <input type="checkbox" class="photo-check" data-path="${file.name}" style="width:20px; height:20px; cursor:pointer; flex-shrink:0;">
-                            <img src="${imgUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; flex-shrink: 0;">
-                            <span style="font-size:.8rem;font-weight:700;word-break:break-all; flex: 1;">${file.name}</span>
-                            <button class="tester-btn del-photo-btn" data-path="${file.name}" style="width:auto;margin:0;padding:4px 8px;font-size:0.7rem;background:var(--danger); color:#fff;">Delete</button>
-                        </div>`;
-            }).join('');
-            
-            // Single Delete Listeners (Global script handles the confirmation prompt)
-            ac.querySelectorAll('.del-photo-btn').forEach(btn=>btn.addEventListener('click',async(e)=>{
-                const path=e.target.dataset.path;
-                try{
-                    const{error:delError}=await sb.storage.from('gallery').remove([path]);
-                    if(delError) throw delError;
-                    ToastModule.show('Photo deleted!');
-                    renderPhotoAdmin();
-                    if(typeof LightboxModule!=='undefined') LightboxModule.loadImages();
-                }catch(err){
-                    ToastModule.show('Error deleting photo.');
-                }
-            }));
             
             // Select All Listener
             const selectAll = ac.querySelector('#selectAllPhotos');
@@ -618,12 +564,7 @@ const TesterModule=(function(){
                     }
                 });
             }
-            
-        }catch(err){
-            ac.innerHTML='<p class="text-sm" style="color: var(--danger);">Error loading photos.</p>';
-        }
-    }
-    
+        
     function init(){
         const modalExists = document.getElementById('testerModal');
         if(!modalExists) return; 
