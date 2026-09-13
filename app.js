@@ -76,7 +76,7 @@ const DashboardModule = (function() {
             const bContent = document.getElementById('dashBriefingContent');
             if (bContent) {
                 if (briefingRes.data && briefingRes.data.message && briefingRes.data.message.trim() !== '') {
-                    bContent.innerHTML = `<p style="font-weight: 600;">"${briefingRes.data.message}"</p><span style="font-size:0.75rem; opacity:0.7;">Click to edit &rarr;</span>`;
+                    bContent.innerHTML = `<p style="font-weight: 600;">"${briefingRes.data.message}"</p>`;
                 } else { bContent.innerHTML = '<p>No briefing set for today.</p>'; }
             }
 
@@ -270,7 +270,7 @@ const LayoutModule = (function() {
 // ==========================================
 // TESTER MODULE (Core Portal & Photo Upload)
 // ==========================================
-const TesterModule=(function(){
+const TesterModule = (function() {
     let m, la, ma, emailInput, pi, et, loginBtn;
     let isMenuLoaded = false; 
 
@@ -279,6 +279,7 @@ const TesterModule=(function(){
     async function login() {
         const sb = window.supabaseClient;
         if (!sb) { if(et) et.textContent = 'Error: Database connection not loaded.'; return; }
+        if (!emailInput || !pi) return;
         const email = emailInput.value.trim();
         const pass = pi.value;
         if (!email || !pass) { if(et) et.textContent = 'Please enter both email and password.'; return; }
@@ -293,10 +294,209 @@ const TesterModule=(function(){
         }
     }
     
-    // ... [KEEP showMenu, showLogin, checkAuthState, uploadPhoto, renderPhotoAdmin HERE] ...
+    async function logout() {
+        const sb = window.supabaseClient;
+        if (sb) await sb.auth.signOut();
+        showLogin();
+        c();
+    }
+    
+    async function showMenu() {
+        if (isMenuLoaded) return;
+        isMenuLoaded = true;
+        try {
+            if(la) la.style.display = 'none';
+            if(ma) ma.style.display = 'flex'; 
+            if(loginBtn) { loginBtn.textContent = 'Log In'; loginBtn.disabled = false; }
+            
+            supabaseClient = window.supabaseClient;
+            const sb = supabaseClient;
+            const { data: { session } } = await sb.auth.getSession();
+            const user = session?.user;
+            const userRole = user?.user_metadata?.role;
+            
+            if (typeof FeaturedEventsModule !== 'undefined') FeaturedEventsModule.loadAdminFeatured();
+            if (typeof FilmNightModule !== 'undefined') FilmNightModule.loadFilms();
+            if (typeof LayoutModule !== 'undefined') LayoutModule.onTesterOpen();
+            if (typeof DatabaseModule !== 'undefined') DatabaseModule.loadUpdates();
+            if (typeof LightboxModule !== 'undefined') LightboxModule.loadImages();
+            if (typeof EventsModule !== 'undefined') EventsModule.loadAdminEvents();
+            if (typeof EnquiriesModule !== 'undefined') EnquiriesModule.loadAdminEnquiries();
+            if (typeof BriefingModule !== 'undefined') BriefingModule.loadBriefing();
+            if (typeof CelebrationModule !== 'undefined') CelebrationModule.loadAdminCelebrations();
+            if (typeof CommunityModule !== 'undefined') CommunityModule.loadAdminCommunity();
+            if (typeof MenuModule !== 'undefined' && (userRole === 'chef' || userRole === 'admin')) MenuModule.loadAdminMenu();
+            
+            setTimeout(() => { renderPhotoAdmin(); }, 500);
+            
+            const dashBtn = document.querySelector('button[data-tab="dashboard"]');
+            if (dashBtn) dashBtn.click();
+            if (typeof DashboardModule !== 'undefined') DashboardModule.loadDashboard();
+            
+        } catch (e) {
+            console.error("Dashboard Load Error:", e);
+            isMenuLoaded = false;
+            if(la) la.style.display = 'flex';
+            if(ma) ma.style.display = 'none';
+            if(loginBtn) { loginBtn.textContent = 'Log In'; loginBtn.disabled = false; }
+            if(et) et.textContent = 'Error loading dashboard. Try refreshing the page.';
+        }
+    }
+    
+    function showLogin() {
+        isMenuLoaded = false;
+        if(la) la.style.display = 'flex'; 
+        if(ma) ma.style.display = 'none';
+        if(pi) pi.value = '';
+        if(emailInput) emailInput.value = '';
+        if(loginBtn) { loginBtn.textContent = 'Log In'; loginBtn.disabled = false; }
+    }
+    
+    async function checkAuthState() {
+        try {
+            const sb = window.supabaseClient;
+            if (!sb) return showLogin();
+            const { data: { session } } = await sb.auth.getSession();
+            if (session) { showMenu(); } else { showLogin(); }
+        } catch (e) { showLogin(); }
+    }
+    
+    async function uploadPhoto() {
+        const sb = window.supabaseClient;
+        const fileInput = document.getElementById('photoUploadInput');
+        const files = Array.from(fileInput.files);
+        if (files.length === 0) { showToast("Please select at least one photo first."); return; }
+
+        const captionInput = document.getElementById('photoCaptionInput');
+        const categoryInput = document.getElementById('photoCategoryInput');
+        const category = categoryInput ? categoryInput.value : 'General';
+        const captionText = captionInput ? captionInput.value.trim() : '';
+        let caption = captionText ? '_caption_' + captionText.replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+/g, '-') : '';
+
+        let successCount = 0;
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (!file.type.startsWith('image/')) continue;
+            showToast(`Processing & compressing photo ${i + 1} of ${files.length}...`);
+            try {
+                const compressedBlob = await compressImage(file, 1200);
+                const baseName = file.name.replace(/\.[^/.]+$/, "").replace(/\s+/g, '_').replace(/[^\w\-]/g, '');
+                const fileName = `photo_${Date.now()}_${i}${caption}_${baseName}.jpg`;
+                const { error: upErr } = await sb.storage.from('gallery').upload(fileName, compressedBlob);
+                if (upErr) throw upErr;
+                const { error: dbErr } = await sb.from('gallery_items').insert([{ storage_path: fileName, caption: captionText, category: category }]);
+                if (dbErr) throw dbErr;
+                successCount++;
+            } catch (err) { console.error("Upload error:", err); }
+        }
+
+        if (successCount > 0) {
+            showToast(`${successCount} photo(s) uploaded successfully!`);
+            fileInput.value = '';
+            if (captionInput) captionInput.value = '';
+            const dropZone = document.getElementById('photoDropZone');
+            if (dropZone) dropZone.innerHTML = '<span id="photoDropText">Drag & drop photos here<br>or click to select</span>';
+            setTimeout(() => {
+                if (typeof LightboxModule !== 'undefined') LightboxModule.loadImages();
+                renderPhotoAdmin();
+            }, 1500);
+        } else { showToast("Upload failed. Please ensure you are selecting valid image files."); }
+    }
+    
+    function compressImage(file, maxWidth) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    let width = img.width; let height = img.height;
+                    if (width > maxWidth) { const ratio = maxWidth / width; width = maxWidth; height = height * ratio; }
+                    canvas.width = width; canvas.height = height;
+                    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, width, height);
+                    canvas.toBlob((blob) => {
+                        if (!blob) { return reject(new Error('Canvas to Blob conversion failed')); }
+                        resolve(blob);
+                    }, 'image/jpeg', 0.7);
+                };
+                img.onerror = () => reject(new Error('Image load error'));
+                img.src = event.target.result;
+            };
+            reader.onerror = () => reject(new Error('File read error'));
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function renderPhotoAdmin() {
+        const sb = window.supabaseClient;
+        const ac = document.getElementById('adminPhotoContainer');
+        if (!ac) return;
+        ac.innerHTML = '<p>Loading photos...</p>';
+        try {
+            const { data, error } = await sb.from('gallery_items').select('*').order('created_at', { ascending: false });
+            if (error) throw error;
+            if (!data || data.length === 0) { ac.innerHTML = '<p>No photos found.</p>'; return; }
+            
+            let toolbar = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;">
+                <label style="font-size:.8rem; display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" id="selectAllPhotos" style="width:16px; height:16px; cursor:pointer;"> Select All
+                </label>
+                <button id="deleteSelectedPhotosBtn" class="tester-btn" style="padding:6px 12px;font-size:0.7rem;background:var(--danger); color:#fff;">Remove Selected</button>
+            </div>`;
+            
+            ac.innerHTML = toolbar + data.map(item => {
+                const { data: urlData } = sb.storage.from('gallery').getPublicUrl(item.storage_path);
+                const imgUrl = urlData.publicUrl;
+                return `<div class="admin-film-item" style="padding: 8px 12px; display: flex; align-items: center; gap: 12px;">
+                            <input type="checkbox" class="photo-check" data-id="${item.id}" data-path="${item.storage_path}" style="width:20px; height:20px; cursor:pointer; flex-shrink:0;">
+                            <img src="${imgUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; flex-shrink: 0;">
+                            <div style="flex:1;">
+                                <span style="font-size:.8rem;font-weight:700;display:block;">${item.caption || item.storage_path}</span>
+                                <span style="font-size:0.7rem; background: var(--accent-soft); color: var(--accent); padding: 2px 6px; border-radius: 4px; margin-top: 2px; display: inline-block;">${item.category}</span>
+                            </div>
+                            <button class="tester-btn del-photo-btn" data-id="${item.id}" data-path="${item.storage_path}" style="padding:4px 8px;font-size:0.7rem;background:var(--danger); color:#fff;">Delete</button>
+                        </div>`;
+            }).join('');
+            
+            ac.querySelectorAll('.del-photo-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+                const id = e.target.dataset.id; const path = e.target.dataset.path;
+                try {
+                    await sb.storage.from('gallery').remove([path]);
+                    await sb.from('gallery_items').delete().eq('id', id);
+                    showToast('Photo deleted!');
+                    renderPhotoAdmin();
+                    if (typeof LightboxModule !== 'undefined') LightboxModule.loadImages();
+                } catch (err) { showToast('Error deleting photo.'); }
+            }));
+            
+            const selectAll = ac.querySelector('#selectAllPhotos');
+            if (selectAll) { selectAll.addEventListener('change', (e) => { document.querySelectorAll('.photo-check').forEach(cb => cb.checked = e.target.checked); }); }
+            
+            const multiDelBtn = ac.querySelector('#deleteSelectedPhotosBtn');
+            if (multiDelBtn) {
+                multiDelBtn.addEventListener('click', async () => {
+                    const checkboxes = document.querySelectorAll('.photo-check:checked');
+                    if (checkboxes.length === 0) { showToast("Please select at least one photo to delete."); return; }
+                    const ids = Array.from(checkboxes).map(cb => cb.dataset.id);
+                    const paths = Array.from(checkboxes).map(cb => cb.dataset.path);
+                    if (confirm(`Are you sure you want to delete ${ids.length} photo(s)?`)) {
+                        showToast("Deleting photos...");
+                        try {
+                            await sb.storage.from('gallery').remove(paths);
+                            await sb.from('gallery_items').delete().in('id', ids);
+                            showToast(`${ids.length} photo(s) deleted successfully!`);
+                            renderPhotoAdmin();
+                            if (typeof LightboxModule !== 'undefined') LightboxModule.loadImages();
+                        } catch (err) { showToast("Error deleting photos."); }
+                    }
+                });
+            }
+        } catch (err) { ac.innerHTML = '<p>Error loading photos.</p>'; }
+    }
     
     function init() {
-        // ASSIGN ELEMENTS HERE (Ensures HTML is fully loaded first)
         m = document.getElementById('testerModal');
         la = document.getElementById('testerLogin');
         ma = document.getElementById('testerMenu');
@@ -307,7 +507,6 @@ const TesterModule=(function(){
         
         if (!m) return; 
         
-        // BULLETPROOF GLOBAL LISTENER
         document.addEventListener('click', function(e) {
             if (e.target && e.target.id === 'testerLoginBtn') { e.preventDefault(); login(); }
             if (e.target && e.target.id === 'testerLogoutBtn') { e.preventDefault(); logout(); }
@@ -333,6 +532,7 @@ const TesterModule=(function(){
     
     return { init, renderPhotoAdmin, uploadPhoto };
 })();
+
 // ==========================================
 // BOOT SEQUENCE
 // ==========================================
