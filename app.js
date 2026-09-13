@@ -640,8 +640,11 @@ const TesterModule=(function(){
             if(typeof CelebrationModule!=='undefined') CelebrationModule.loadAdminCelebrations();
             if(typeof CommunityModule!=='undefined') CommunityModule.loadAdminCommunity();
             if(typeof MenuModule!=='undefined' && (userRole==='chef'||userRole==='admin')) MenuModule.loadAdminMenu();
-                        if(typeof DashboardModule!=='undefined') DashboardModule.loadDashboard();
+            // Force the Dashboard tab to open on login
+            const dashBtn = document.querySelector('button[data-tab="dashboard"]');
+            if(dashBtn) dashBtn.click();
             
+            if(typeof DashboardModule!=='undefined') DashboardModule.loadDashboard();            
             setTimeout(() => { renderPhotoAdmin(); }, 500);
             
         } catch(e) {

@@ -574,7 +574,7 @@
 </script>
 <script src="app.js?v=4"></script>
 <script>
-    // 1. Tab Switching
+        // 1. Tab Switching
     document.addEventListener('click', function(e) {
         const tabBtn = e.target.closest('.tester-tab-btn');
         if (tabBtn && tabBtn.dataset.tab) {
@@ -587,6 +587,11 @@
             const tabs = document.querySelector('.tester-tabs'); const backdrop = document.getElementById('mobileBackdrop');
             if (tabs) tabs.classList.remove('mobile-open'); if (backdrop) backdrop.style.display = 'none';
             localStorage.setItem('haven_active_tab', tabName);
+            
+            // NEW: Load dashboard data if the dashboard tab is clicked
+            if (tabName === 'dashboard' && typeof DashboardModule !== 'undefined') {
+                DashboardModule.loadDashboard();
+            }
         }
     }, true);
 
