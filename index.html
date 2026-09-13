@@ -288,18 +288,52 @@
                 }
                 showToast(`${success} photo(s) uploaded!`); fileInput.value = ''; renderPhotoAdmin();
             }
-            async function renderPhotoAdmin() {
+                        async function renderPhotoAdmin() {
                 const sb = window.supabaseClient; const ac = document.getElementById('adminPhotoContainer'); if (!ac) return; ac.innerHTML = '<p>Loading...</p>';
                 try {
                     const { data, error } = await sb.from('gallery_items').select('*').order('created_at', { ascending: false });
                     if (error) throw error; if (!data || data.length === 0) { ac.innerHTML = '<p>No photos found.</p>'; return; }
-                    ac.innerHTML = data.map(item => {
+                    
+                    let toolbar = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;">
+                        <label style="font-size:.8rem; display:flex; align-items:center; gap:8px; cursor:pointer;">
+                            <input type="checkbox" id="selectAllPhotos" style="width:16px; height:16px; cursor:pointer;"> Select All
+                        </label>
+                        <button id="deleteSelectedPhotosBtn" class="btn-danger btn-sm">Remove Selected</button>
+                    </div>`;
+                    
+                    ac.innerHTML = toolbar + data.map(item => {
                         const { data: urlData } = sb.storage.from('gallery').getPublicUrl(item.storage_path);
-                        return `<div style="display:flex; align-items:center; gap:10px; margin-bottom:10px; padding:5px; background:var(--surface-2); border-radius:8px;"><img src="${urlData.publicUrl}" style="width:50px; height:50px; object-fit:cover; border-radius:4px;"><span style="flex:1; font-size:0.8rem;">${item.caption || item.storage_path}</span><button class="del-photo btn-sm" data-id="${item.id}" data-path="${item.storage_path}">Delete</button></div>`;
+                        return `<div style="display:flex; align-items:center; gap:10px; margin-bottom:10px; padding:5px; background:var(--surface-2); border-radius:8px;">
+                            <input type="checkbox" class="photo-check" data-id="${item.id}" data-path="${item.storage_path}" style="width:20px; height:20px; cursor:pointer; flex-shrink:0;">
+                            <img src="${urlData.publicUrl}" style="width:50px; height:50px; object-fit:cover; border-radius:4px;">
+                            <span style="flex:1; font-size:0.8rem;">${item.caption || item.storage_path}</span>
+                            <button class="del-photo btn-sm" data-id="${item.id}" data-path="${item.storage_path}">Delete</button>
+                        </div>`;
                     }).join('');
+                    
                     ac.querySelectorAll('.del-photo').forEach(btn => btn.addEventListener('click', async (e) => {
-                        const id = e.target.dataset.id; const path = e.target.dataset.path; await sb.storage.from('gallery').remove([path]); await sb.from('gallery_items').delete().eq('id', id); showToast('Photo deleted!'); renderPhotoAdmin();
+                        const id = e.target.dataset.id; const path = e.target.dataset.path; 
+                        await sb.storage.from('gallery').remove([path]); await sb.from('gallery_items').delete().eq('id', id); showToast('Photo deleted!'); renderPhotoAdmin();
                     }));
+                    
+                    const selectAll = ac.querySelector('#selectAllPhotos');
+                    if (selectAll) { selectAll.addEventListener('change', (e) => { document.querySelectorAll('.photo-check').forEach(cb => cb.checked = e.target.checked); }); }
+                    
+                    const multiDelBtn = ac.querySelector('#deleteSelectedPhotosBtn');
+                    if (multiDelBtn) {
+                        multiDelBtn.addEventListener('click', async () => {
+                            const checkboxes = document.querySelectorAll('.photo-check:checked');
+                            if (checkboxes.length === 0) { showToast("Please select at least one photo to delete."); return; }
+                            const ids = Array.from(checkboxes).map(cb => cb.dataset.id);
+                            const paths = Array.from(checkboxes).map(cb => cb.dataset.path);
+                            if (confirm(`Are you sure you want to delete ${ids.length} photo(s)?`)) {
+                                showToast("Deleting photos...");
+                                try {
+                                    await sb.storage.from('gallery').remove(paths); await sb.from('gallery_items').delete().in('id', ids); showToast(`${ids.length} photo(s) deleted successfully!`); renderPhotoAdmin();
+                                } catch (err) { showToast("Error deleting photos."); }
+                            }
+                        });
+                    }
                 } catch (err) { ac.innerHTML = '<p>Error loading photos.</p>'; }
             }
             function init() {
