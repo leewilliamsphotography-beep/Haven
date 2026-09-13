@@ -496,7 +496,7 @@ const TesterModule = (function() {
         } catch (err) { ac.innerHTML = '<p>Error loading photos.</p>'; }
     }
     
-    function init() {
+        function init() {
         m = document.getElementById('testerModal');
         la = document.getElementById('testerLogin');
         ma = document.getElementById('testerMenu');
@@ -507,11 +507,32 @@ const TesterModule = (function() {
         
         if (!m) return; 
         
+        // BULLETPROOF GLOBAL LISTENER FOR TABS & BUTTONS
         document.addEventListener('click', function(e) {
+            // 1. Handle Login/Logout/Close/Upload Buttons
             if (e.target && e.target.id === 'testerLoginBtn') { e.preventDefault(); login(); }
             if (e.target && e.target.id === 'testerLogoutBtn') { e.preventDefault(); logout(); }
             if (e.target && e.target.id === 'testerCloseBtn') { c(); }
             if (e.target && e.target.id === 'uploadPhotoBtn') { uploadPhoto(); }
+            
+            // 2. Handle Tab Switching
+            const tabBtn = e.target.closest('.tester-tab-btn');
+            if (tabBtn && tabBtn.dataset.tab) {
+                const tabName = tabBtn.dataset.tab;
+                document.querySelectorAll('.tester-tab-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tester-tab-content').forEach(tab => { tab.classList.remove('active'); tab.style.display = 'none'; });
+                tabBtn.classList.add('active');
+                const activeTab = document.getElementById(`tab-${tabName}`);
+                if (activeTab) { activeTab.classList.add('active'); activeTab.style.display = 'block'; }
+                const tabs = document.querySelector('.tester-tabs'); 
+                const backdrop = document.getElementById('mobileBackdrop');
+                if (tabs) tabs.classList.remove('mobile-open'); 
+                if (backdrop) backdrop.style.display = 'none';
+                localStorage.setItem('haven_active_tab', tabName);
+                if (tabName === 'dashboard' && typeof DashboardModule !== 'undefined') { 
+                    DashboardModule.loadDashboard(); 
+                }
+            }
         });
         
         if (pi) pi.addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
