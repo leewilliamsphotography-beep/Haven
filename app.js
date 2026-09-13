@@ -143,10 +143,17 @@ const LightboxModule=(function(){
         g.innerHTML='';
         if(imgs.length===0){g.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">No photos yet.</p>';return;}
         
+        // SET UP COLLAGE / MASONRY LAYOUT
+        const isMobile = window.innerWidth < 768;
+        g.style.display = 'block'; 
+        g.style.columnCount = isMobile ? '2' : '3'; // 2 columns on mobile, 3 on desktop
+        g.style.columnGap = '12px';
+        
         const categories = ['All', ...new Set(imgs.map(i => i.category).filter(Boolean))];
         if(categories.length > 1){
             const filterDiv = document.createElement('div');
-            filterDiv.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;grid-column:1/-1;justify-content:center;';
+            // Make filters span across the top
+            filterDiv.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;justify-content:center;column-span:all;';
             categories.forEach(cat => {
                 const btn = document.createElement('button');
                 btn.textContent = cat;
@@ -176,8 +183,18 @@ const LightboxModule=(function(){
         const filtered = category === 'All' ? imgs : imgs.filter(i => i.category === category);
         filtered.slice(0,6).forEach((io,idx)=>{
             const t=document.createElement('img');
-            t.src=io.src;t.alt=`View ${io.alt}`;
-            t.className='gallery-thumb blur-load';t.loading='lazy';
+            t.src=io.src;
+            t.alt=`View ${io.alt}`;
+            t.className='gallery-thumb blur-load';
+            t.loading='lazy';
+            // COLLAGE STYLING FOR EACH IMAGE
+            t.style.width = '100%';
+            t.style.height = 'auto';
+            t.style.marginBottom = '12px';
+            t.style.borderRadius = '12px';
+            t.style.display = 'block';
+            t.style.breakInside = 'avoid'; // Prevents images from splitting across columns
+            
             t.addEventListener('load',()=>t.classList.add('loaded'));
             t.addEventListener('click',()=>o(idx, filtered));
             g.appendChild(t);
@@ -188,6 +205,10 @@ const LightboxModule=(function(){
             v.className='gallery-cta';
             v.setAttribute('aria-label','Open full photo gallery');
             v.innerHTML=`<div class="gallery-cta-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2-3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></div><div class="gallery-cta-text">View All ${filtered.length} Photos</div>`;
+            // Make CTA span across the bottom
+            v.style.columnSpan = 'all';
+            v.style.marginTop = '12px';
+            v.style.width = '100%';
             v.addEventListener('click',()=>o(0, filtered));
             g.appendChild(v);
         }
