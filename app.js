@@ -624,7 +624,9 @@ const TesterModule=(function(){
                     if(typeof ToastModule!=='undefined') ToastModule.show('Dashboard theme saved!'); 
                     document.querySelectorAll('.staff-theme-btn').forEach(b => b.classList.remove('theme-btn-active')); 
                     btn.classList.add('theme-btn-active'); 
+                    
                 };
+                
             });
 
             if(typeof FeaturedEventsModule!=='undefined') FeaturedEventsModule.loadAdminFeatured();
@@ -645,9 +647,11 @@ const TesterModule=(function(){
         } catch(e) {
             console.error("Dashboard Load Error:", e);
             isMenuLoaded = false;
-            loginBtn.textContent='Log In';
-            loginBtn.disabled=false;
-            et.textContent='Error loading dashboard: ' + e.message;
+            // Revert back to login screen so you aren't stuck on a blank screen
+            if(la) la.style.display = 'flex';
+            if(ma) ma.style.display = 'none';
+            if(loginBtn) { loginBtn.textContent='Log In'; loginBtn.disabled=false; }
+            if(et) et.textContent='Error loading dashboard. Try refreshing the page.';
         }
     }
     
