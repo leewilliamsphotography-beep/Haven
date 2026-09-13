@@ -614,7 +614,7 @@ function initializeAppModules() {
     console.log("Haven Portal Modules Loaded Successfully.");
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+function bootApp() {
     if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
         supabaseClient = window.supabase.createClient('https://bsbwrvqevtoujfvcvvju.supabase.co', 'sb_publishable_c6IrevCpSel1njeKV0PhEA_Rbw2UdAx');
         window.supabaseClient = supabaseClient;
@@ -636,4 +636,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 100);
     }
-});
+}
+
+// Check if the DOM is already loaded, otherwise wait for it
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootApp);
+} else {
+    bootApp();
+}
