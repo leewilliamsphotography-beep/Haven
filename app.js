@@ -428,7 +428,7 @@ const AuthModule=(function(){
     }
     return { init };
 })();
-const const DashboardModule=(function(){
+ const DashboardModule=(function(){
     async function loadDashboard(){
         const sb = window.supabaseClient;
         if(!sb) return;
