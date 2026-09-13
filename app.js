@@ -485,10 +485,10 @@ const TesterModule=(function(){
             .catch(err=>ToastModule.show('Error broadcasting message.'));
     }
     
-        async function uploadPhoto(){
+            async function uploadPhoto(){
         const sb = window.supabaseClient;
         const fileInput=document.getElementById('photoUploadInput');
-        const files = Array.from(fileInput.files); // Convert FileList to Array
+        const files = Array.from(fileInput.files);
         
         if(files.length === 0){
             ToastModule.show("Please select at least one photo first.");
@@ -502,7 +502,6 @@ const TesterModule=(function(){
         let successCount = 0;
         let failCount = 0;
 
-        // Loop through all selected files
         for(let i = 0; i < files.length; i++){
             const file = files[i];
             if(!file.type.startsWith('image/')){
@@ -511,8 +510,6 @@ const TesterModule=(function(){
             }
 
             ToastModule.show(`Uploading photo ${i + 1} of ${files.length}...`);
-            
-            // Added an index (i) to the filename to prevent identical names from clashing
             const safeName = file.name.replace(/\s+/g,'_');
             const fileName=`photo_${Date.now()}_${i}${caption}_${safeName}`;
             
@@ -525,16 +522,13 @@ const TesterModule=(function(){
             }
         }
 
-        // Final toast message based on results
         if(successCount > 0){
             ToastModule.show(`${successCount} photo(s) uploaded successfully!`);
             fetch('https://ntfy.sh/tinkers-hatch-live',{method:'POST',body:'New photos added to the gallery!'}).catch(()=>{});
             fileInput.value='';
             if(captionInput) captionInput.value='';
-            
             const dropZone = document.getElementById('photoDropZone');
             if(dropZone) dropZone.innerHTML = '<span id="photoDropText">Drag & drop photos here<br>or click to select</span>';
-            
             setTimeout(() => {
                 if(typeof LightboxModule!=='undefined') LightboxModule.loadImages();
                 renderPhotoAdmin();

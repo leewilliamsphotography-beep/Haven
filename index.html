@@ -341,14 +341,17 @@
                 <iframe src="haven.html" title="Haven Staff Messaging"></iframe>
             </div>
 
-            <div class="admin-card">
-    <h4>📤 Upload New Photos</h4>
-    <div id="photoDropZone" class="photo-drop-zone"><span id="photoDropText">Drag & drop photos here<br>or click to select</span></div>
-    <!-- Added 'multiple' attribute here -->
-    <input type="file" id="photoUploadInput" accept="image/*" multiple class="tester-input" style="display: none; margin-bottom: 16px;">
-    <label class="admin-label">Caption (Applies to all selected photos)</label>
-    <input type="text" id="photoCaptionInput" class="tester-input" placeholder="e.g., Margaret's roses" style="margin-bottom: 16px;">
-    <button id="uploadPhotoBtn" class="tester-btn" style="background: var(--accent); color: #0B0E14;">Upload Photos</button>
+            <div id="tab-photos" class="tester-tab-content active">
+    <div class="admin-header"><h3>Gallery Manager</h3><p>Upload new photos for the website gallery.</p></div>
+    <div class="admin-card">
+        <h4>📤 Upload New Photos</h4>
+        <div id="photoDropZone" class="photo-drop-zone"><span id="photoDropText">Drag & drop photos here<br>or click to select</span></div>
+        <input type="file" id="photoUploadInput" accept="image/*" multiple class="tester-input" style="display: none; margin-bottom: 16px;">
+        <label class="admin-label">Caption (Applies to all selected photos)</label>
+        <input type="text" id="photoCaptionInput" class="tester-input" placeholder="e.g., Margaret's roses" style="margin-bottom: 16px;">
+        <button id="uploadPhotoBtn" class="tester-btn" style="background: var(--accent); color: #0B0E14;">Upload Photos</button>
+    </div>
+    <div class="admin-card"><h4>Manage Existing</h4><div id="adminPhotoContainer" class="space-y-3 mt-6 max-h-60 overflow-y-auto text-left"></div></div>
 </div>
 
             <div id="tab-events" class="tester-tab-content">
@@ -589,28 +592,25 @@
         });
     });
 
-    // 5. Drag & Drop Photo Upload
-const dropZone = document.getElementById('photoDropZone'); const fileInput = document.getElementById('photoUploadInput');
-function handleFile(files) {
-    if (!files || files.length === 0) return; 
-    
-    // If only one file, show the image preview
-    if (files.length === 1) {
-        const reader = new FileReader();
-        reader.onload = function(e) { dropZone.innerHTML = `<img src="${e.target.result}" class="photo-preview-img"><span style="font-size: 0.8rem; color: var(--muted);">Click to change</span>`; };
-        reader.readAsDataURL(files[0]);
-    } else {
-        // If multiple files, show a counter instead of an image preview
-        dropZone.innerHTML = `<span style="font-size: 1.2rem;">📸 ${files.length} photos selected</span><span style="font-size: 0.8rem; color: var(--muted);">Click to change</span>`;
+    // 5. Drag & Drop Photo Upload (MULTI-PHOTO)
+    const dropZone = document.getElementById('photoDropZone'); const fileInput = document.getElementById('photoUploadInput');
+    function handleFile(files) {
+        if (!files || files.length === 0) return; 
+        if (files.length === 1) {
+            const reader = new FileReader();
+            reader.onload = function(e) { dropZone.innerHTML = `<img src="${e.target.result}" class="photo-preview-img"><span style="font-size: 0.8rem; color: var(--muted);">Click to change</span>`; };
+            reader.readAsDataURL(files[0]);
+        } else {
+            dropZone.innerHTML = `<span style="font-size: 1.2rem;">📸 ${files.length} photos selected</span><span style="font-size: 0.8rem; color: var(--muted);">Click to change</span>`;
+        }
     }
-}
-if (dropZone && fileInput) {
-    dropZone.addEventListener('click', () => fileInput.click());
-    ['dragenter', 'dragover'].forEach(eventName => { dropZone.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('dragover'); }); });
-    ['dragleave', 'drop'].forEach(eventName => { dropZone.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('dragover'); }); });
-    dropZone.addEventListener('drop', (e) => { if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; handleFile(e.dataTransfer.files); } });
-    fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFile(fileInput.files); });
-}
+    if (dropZone && fileInput) {
+        dropZone.addEventListener('click', () => fileInput.click());
+        ['dragenter', 'dragover'].forEach(eventName => { dropZone.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('dragover'); }); });
+        ['dragleave', 'drop'].forEach(eventName => { dropZone.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('dragover'); }); });
+        dropZone.addEventListener('drop', (e) => { if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; handleFile(e.dataTransfer.files); } });
+        fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFile(fileInput.files); });
+    }
 
     // 6. Enquiry Search
     document.addEventListener('input', function(e) {
@@ -630,7 +630,7 @@ if (dropZone && fileInput) {
         if (mobileBackdrop) { mobileBackdrop.addEventListener('click', closeMobileMenu); }
     }
 
-    // 8. Layout Enforcement
+    // 8. Layout Enforcement (THIS FIXES THE HALF-SIZE BUG)
     function enforceFullScreenLayout() {
         const modal = document.getElementById('testerModal'); const content = document.querySelector('.tester-content'); const login = document.getElementById('testerLogin'); const menu = document.getElementById('testerMenu');
         if (modal) { modal.style.width = '100%'; modal.style.height = '100%'; modal.style.maxWidth = '100%'; modal.style.maxHeight = '100%'; }
@@ -640,26 +640,15 @@ if (dropZone && fileInput) {
     }
     enforceFullScreenLayout(); window.addEventListener('resize', enforceFullScreenLayout); window.addEventListener('orientationchange', enforceFullScreenLayout);
 
-        // 9. Theme Switcher
+    // 9. Theme Switcher
     function applyHavenTheme(themeName) {
         document.body.classList.remove('staff-dark', 'staff-light', 'staff-warm', 'staff-ocean', 'staff-forest', 'staff-sunset');
         document.body.classList.add(themeName); localStorage.setItem('haven_portal_theme', themeName);
         document.querySelectorAll('.theme-card').forEach(card => { if (card.dataset.theme === themeName) card.classList.add('active'); else card.classList.remove('active'); });
-        
-        // Sync to Messenger iframe
-        const messengerThemes = {
-            'staff-dark': 'midnight',
-            'staff-light': 'light',
-            'staff-warm': 'sand',
-            'staff-ocean': 'ocean',
-            'staff-forest': 'cyber',
-            'staff-sunset': 'ember'
-        };
+        const messengerThemes = { 'staff-dark': 'midnight', 'staff-light': 'light', 'staff-warm': 'sand', 'staff-ocean': 'ocean', 'staff-forest': 'cyber', 'staff-sunset': 'ember' };
         const messengerTheme = messengerThemes[themeName] || 'midnight';
         const iframe = document.querySelector('#tab-haven iframe');
-        if (iframe && iframe.contentWindow) {
-            try { iframe.contentWindow.postMessage({ type: 'set_messenger_theme', theme: messengerTheme }, '*'); } catch(e) {}
-        }
+        if (iframe && iframe.contentWindow) { try { iframe.contentWindow.postMessage({ type: 'set_messenger_theme', theme: messengerTheme }, '*'); } catch(e) {} }
     }
     document.querySelectorAll('.theme-card').forEach(card => { card.addEventListener('click', function() { applyHavenTheme(this.dataset.theme); }); });
     document.getElementById('themeQuickToggle').addEventListener('click', function() { const isDark = document.body.classList.contains('staff-dark'); applyHavenTheme(isDark ? 'staff-light' : 'staff-dark'); });
@@ -670,7 +659,6 @@ if (dropZone && fileInput) {
     bodyObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
     const initialTheme = localStorage.getItem('haven_portal_theme') || 'staff-dark'; applyHavenTheme(initialTheme);
 
-    // Listen for theme changes from Messenger iframe
     window.addEventListener('message', (e) => {
         if (e.data && e.data.type === 'set_portal_theme') {
             const newTheme = e.data.theme;
@@ -683,20 +671,12 @@ if (dropZone && fileInput) {
         }
     });
 
-    // Sync theme when iframe first loads
     const havenIframe = document.querySelector('#tab-haven iframe');
-    if (havenIframe) {
-        havenIframe.addEventListener('load', () => {
-            const currentTheme = localStorage.getItem('haven_portal_theme') || 'staff-dark';
-            applyHavenTheme(currentTheme);
-        });
-    }
+    if (havenIframe) { havenIframe.addEventListener('load', () => { const currentTheme = localStorage.getItem('haven_portal_theme') || 'staff-dark'; applyHavenTheme(currentTheme); }); }
 
-    // 10. Restore Last Tab
     const lastTab = localStorage.getItem('haven_active_tab');
     if (lastTab) { const btn = document.querySelector(`.tester-tab-btn[data-tab="${lastTab}"]`); if (btn) btn.click(); }
 
-    // 11. Empty States
     function setupEmptyStateObserver(containerId, message) {
         const container = document.getElementById(containerId); if (!container) return;
         const observer = new MutationObserver(() => {
@@ -714,7 +694,6 @@ if (dropZone && fileInput) {
     setupEmptyStateObserver('adminCommunityContainer', '🏘️ No community spotlights yet.');
     setupEmptyStateObserver('adminCelebContainer', '🎉 No upcoming celebrations.');
 
-       // 12. Music Toggle (Using ambient1.mp3)
     const musicToggleBtn = document.getElementById('musicToggleBtn'); 
     const bgMusic = document.getElementById('havenAmbientAudio'); 
     const musicIconPlay = document.getElementById('musicIconPlay'); 
@@ -724,25 +703,15 @@ if (dropZone && fileInput) {
     if (musicToggleBtn && bgMusic) {
         musicToggleBtn.addEventListener('click', function() {
             if (bgMusic.paused) {
-                // Attempt to play the audio file
                 bgMusic.play().then(() => {
-                    musicIconPlay.style.display = 'none';
-                    musicIconPause.style.display = 'block';
-                    musicToggleText.textContent = 'Pause Ambient Music';
-                }).catch(err => {
-                    showToast('Could not play audio. Ensure ambient1.mp3 is uploaded next to index.html.');
-                    console.error('Audio playback failed:', err);
-                });
+                    musicIconPlay.style.display = 'none'; musicIconPause.style.display = 'block'; musicToggleText.textContent = 'Pause Ambient Music';
+                }).catch(err => { showToast('Could not play audio. Ensure ambient1.mp3 is uploaded next to index.html.'); });
             } else { 
-                bgMusic.pause(); 
-                musicIconPlay.style.display = 'block'; 
-                musicIconPause.style.display = 'none'; 
-                musicToggleText.textContent = 'Play Ambient Music'; 
+                bgMusic.pause(); musicIconPlay.style.display = 'block'; musicIconPause.style.display = 'none'; musicToggleText.textContent = 'Play Ambient Music'; 
             }
         });
     }
 
-    // 13. Seasonal FX
     function initStaffSeasonFX() {
         const fxContainer = document.getElementById('staff-seasonal-fx'); if (!fxContainer) return;
         let season = localStorage.getItem('tinkers_season');
@@ -761,12 +730,10 @@ if (dropZone && fileInput) {
     }
     initStaffSeasonFX();
     document.querySelectorAll('.tester-season-btn').forEach(btn => { btn.addEventListener('click', initStaffSeasonFX); });
-        // === FORCE REFRESH ADMIN LISTS AFTER DELETE (Mobile Fix) ===
+
     document.addEventListener('click', function(e) {
         const btn = e.target.closest('button');
         if (btn && (btn.classList.contains('del-event-btn') || btn.classList.contains('del-celeb-btn') || btn.classList.contains('del-update-btn') || btn.classList.contains('del-photo-btn') || btn.classList.contains('del-film-btn') || btn.classList.contains('del-community-btn') || btn.classList.contains('del-enq-btn') || btn.classList.contains('del-featured-btn'))) {
-            
-            // Wait 500ms for the database delete to finish, then force refresh the lists
             setTimeout(() => {
                 if (typeof EventsModule !== 'undefined') EventsModule.loadAdminEvents();
                 if (typeof CelebrationModule !== 'undefined') CelebrationModule.loadAdminCelebrations();
@@ -779,40 +746,19 @@ if (dropZone && fileInput) {
             }, 500);
         }
     }, true);
-    // === FORCE REFRESH ADMIN LISTS AFTER ADD/SAVE (Mobile Fix) ===
+
     document.addEventListener('click', function(e) {
         const btn = e.target.closest('button');
         if (!btn) return;
-
-        // Wait 1.5 seconds for the database insert to finish, then refresh the lists
-        if (btn.id === 'addEventBtn') {
-            setTimeout(() => { if (typeof EventsModule !== 'undefined') { EventsModule.loadAdminEvents(); EventsModule.loadEvents(); } }, 1500);
-        } 
-        else if (btn.id === 'saveMenuBtn') {
-            setTimeout(() => { if (typeof MenuModule !== 'undefined') MenuModule.loadAdminMenu(); }, 1500);
-        }
-        else if (btn.id === 'addWilfBlogBtn') {
-            // Assuming you have a WilfBlogModule load function, if not, this is safe.
-            setTimeout(() => { if (typeof WilfModule !== 'undefined' && WilfModule.loadStatus) WilfModule.loadStatus(); }, 1500);
-        }
-        else if (btn.id === 'addUpdateBtn') {
-            setTimeout(() => { if (typeof DatabaseModule !== 'undefined') DatabaseModule.loadUpdates(); }, 1500);
-        }
-        else if (btn.id === 'addFilmBtn') {
-            setTimeout(() => { if (typeof FilmNightModule !== 'undefined') FilmNightModule.loadFilms(); }, 1500);
-        }
-        else if (btn.id === 'addCommunityBtn') {
-            setTimeout(() => { if (typeof CommunityModule !== 'undefined') { CommunityModule.loadAdminCommunity(); CommunityModule.loadCommunity(); } }, 1500);
-        }
-        else if (btn.id === 'addCelebBtn') {
-            setTimeout(() => { if (typeof CelebrationModule !== 'undefined') { CelebrationModule.loadAdminCelebrations(); CelebrationModule.loadCelebrations(); } }, 1500);
-        }
-        else if (btn.id === 'addFeaturedBtn') {
-            setTimeout(() => { if (typeof FeaturedEventsModule !== 'undefined') { FeaturedEventsModule.loadAdminFeatured(); FeaturedEventsModule.loadFeatured(); } }, 1500);
-        }
-        else if (btn.id === 'saveBriefingBtn') {
-            setTimeout(() => { if (typeof BriefingModule !== 'undefined') BriefingModule.loadBriefing(); }, 1500);
-        }
+        if (btn.id === 'addEventBtn') { setTimeout(() => { if (typeof EventsModule !== 'undefined') { EventsModule.loadAdminEvents(); EventsModule.loadEvents(); } }, 1500); } 
+        else if (btn.id === 'saveMenuBtn') { setTimeout(() => { if (typeof MenuModule !== 'undefined') MenuModule.loadAdminMenu(); }, 1500); }
+        else if (btn.id === 'addWilfBlogBtn') { setTimeout(() => { if (typeof WilfModule !== 'undefined' && WilfModule.loadStatus) WilfModule.loadStatus(); }, 1500); }
+        else if (btn.id === 'addUpdateBtn') { setTimeout(() => { if (typeof DatabaseModule !== 'undefined') DatabaseModule.loadUpdates(); }, 1500); }
+        else if (btn.id === 'addFilmBtn') { setTimeout(() => { if (typeof FilmNightModule !== 'undefined') FilmNightModule.loadFilms(); }, 1500); }
+        else if (btn.id === 'addCommunityBtn') { setTimeout(() => { if (typeof CommunityModule !== 'undefined') { CommunityModule.loadAdminCommunity(); CommunityModule.loadCommunity(); } }, 1500); }
+        else if (btn.id === 'addCelebBtn') { setTimeout(() => { if (typeof CelebrationModule !== 'undefined') { CelebrationModule.loadAdminCelebrations(); CelebrationModule.loadCelebrations(); } }, 1500); }
+        else if (btn.id === 'addFeaturedBtn') { setTimeout(() => { if (typeof FeaturedEventsModule !== 'undefined') { FeaturedEventsModule.loadAdminFeatured(); FeaturedEventsModule.loadFeatured(); } }, 1500); }
+        else if (btn.id === 'saveBriefingBtn') { setTimeout(() => { if (typeof BriefingModule !== 'undefined') BriefingModule.loadBriefing(); }, 1500); }
     }, true);
 </script>
 </body>
