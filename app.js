@@ -433,7 +433,6 @@ const DashboardModule=(function(){
         const sb = window.supabaseClient;
         if(!sb) return;
         
-        // Get current date strings
         const now = new Date();
         const todayStr = now.toISOString().split('T')[0];
         const currentDayName = now.toLocaleDateString('en-GB', { weekday: 'long' });
@@ -448,60 +447,81 @@ const DashboardModule=(function(){
                 sb.from('weekly_menu').select('*').eq('day_name', currentDayName).single()
             ]);
 
+            // Helper function to make the entire card clickable
+            function makeCardClickable(cardId, tabName) {
+                const card = document.getElementById(cardId);
+                if(card) {
+                    card.style.cursor = 'pointer';
+                    card.style.transition = 'transform 0.2s, border-color 0.2s';
+                    // Hover effects
+                    card.onmouseenter = () => { card.style.transform = 'translateY(-3px)'; card.style.borderColor = 'var(--accent)'; };
+                    card.onmouseleave = () => { card.style.transform = 'translateY(0)'; card.style.borderColor = 'var(--border)'; };
+                    // Click to navigate
+                    card.onclick = () => {
+                        const btn = document.querySelector(`button[data-tab="${tabName}"]`);
+                        if(btn) btn.click();
+                    };
+                }
+            }
+
+            // Attach click events to the static cards
+            makeCardClickable('dashBriefing', 'briefing');
+            makeCardClickable('dashWilf', 'wilf');
+            makeCardClickable('dashEnquiries', 'enquiries');
+            makeCardClickable('dashEvents', 'events');
+            makeCardClickable('dashMenu', 'menu');
+
             // 1. Briefing
             const bContent = document.getElementById('dashBriefingContent');
             if(briefingRes.data && briefingRes.data.message && briefingRes.data.message.trim() !== ''){
-                bContent.innerHTML = `<p style="color: var(--fg); font-size: 1rem; font-weight: 600;">"${briefingRes.data.message}"</p>`;
+                bContent.innerHTML = `<p style="color: var(--fg); font-size: 1rem; font-weight: 600;">"${briefingRes.data.message}"</p><span style="font-size:0.75rem; color:var(--muted-2); display:block; margin-top:8px;">Click to edit &rarr;</span>`;
             } else {
-                bContent.innerHTML = '<p style="color: var(--muted);">No briefing set for today.</p>';
+                bContent.innerHTML = '<p style="color: var(--muted);">No briefing set for today.</p><span style="font-size:0.75rem; color:var(--muted-2); display:block; margin-top:8px;">Click to set &rarr;</span>';
             }
 
             // 2. Wilf
             const wContent = document.getElementById('dashWilfContent');
             if(wilfRes.data && wilfRes.data.is_visiting){
-                wContent.innerHTML = '<span style="color: var(--accent); font-weight: 700; font-size: 1.1rem;">Wilf is visiting today! 🎉</span>';
+                wContent.innerHTML = '<span style="color: var(--accent); font-weight: 700; font-size: 1.1rem;">Wilf is visiting today! 🎉</span><span style="font-size:0.75rem; color:var(--muted-2); display:block; margin-top:8px;">Click to change &rarr;</span>';
             } else {
-                wContent.innerHTML = '<span style="color: var(--muted);">Wilf is currently off-site.</span>';
+                wContent.innerHTML = '<span style="color: var(--muted);">Wilf is currently off-site.</span><span style="font-size:0.75rem; color:var(--muted-2); display:block; margin-top:8px;">Click to change &rarr;</span>';
             }
 
             // 3. Enquiries
             const eContent = document.getElementById('dashEnquiriesContent');
             const enqCount = enquiriesRes.data ? enquiriesRes.data.length : 0;
             if(enqCount > 0){
-                eContent.innerHTML = `<span style="color: var(--fg); font-weight: 700; font-size: 1.5rem;">${enqCount}</span> <span style="color: var(--muted);">unread enquiry(s).</span>`;
+                eContent.innerHTML = `<span style="color: var(--fg); font-weight: 700; font-size: 1.5rem;">${enqCount}</span> <span style="color: var(--muted);">unread enquiry(s).</span><span style="font-size:0.75rem; color:var(--muted-2); display:block; margin-top:8px;">Click to view &rarr;</span>`;
             } else {
-                eContent.innerHTML = '<span style="color: var(--muted);">Inbox zero! No new enquiries.</span>';
+                eContent.innerHTML = '<span style="color: var(--muted);">Inbox zero! No new enquiries.</span><span style="font-size:0.75rem; color:var(--muted-2); display:block; margin-top:8px;">Click to view &rarr;</span>';
             }
 
             // 4. Events
             const evContent = document.getElementById('dashEventsContent');
             const todayEvents = eventsRes.data ? eventsRes.data.filter(ev => ev.event_date === todayStr) : [];
             if(todayEvents.length > 0){
-                evContent.innerHTML = todayEvents.map(ev => `<div style="background: var(--surface-2); padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; color: var(--fg);"><strong>${ev.title}</strong><br><span style="font-size: 0.8rem; color: var(--muted);">${ev.description || ''}</span></div>`).join('');
+                evContent.innerHTML = todayEvents.map(ev => `<div style="background: var(--surface-2); padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; color: var(--fg);"><strong>${ev.title}</strong></div>`).join('') + '<span style="font-size:0.75rem; color:var(--muted-2); display:block; margin-top:8px;">Click to manage events &rarr;</span>';
             } else {
-                evContent.innerHTML = '<span style="color: var(--muted);">No events scheduled for today.</span>';
+                evContent.innerHTML = '<span style="color: var(--muted);">No events scheduled for today.</span><span style="font-size:0.75rem; color:var(--muted-2); display:block; margin-top:8px;">Click to add event &rarr;</span>';
             }
 
             // 5. Menu
             const mContent = document.getElementById('dashMenuContent');
             if(menuRes.data && menuRes.data.meal_text && menuRes.data.meal_text.trim() !== ''){
-                mContent.innerHTML = `<p style="color: var(--fg); font-size: 1rem; font-weight: 600;">${menuRes.data.meal_text}</p>`;
+                mContent.innerHTML = `<p style="color: var(--fg); font-size: 1rem; font-weight: 600;">${menuRes.data.meal_text}</p><span style="font-size:0.75rem; color:var(--muted-2); display:block; margin-top:8px;">Click to edit menu &rarr;</span>`;
             } else {
-                mContent.innerHTML = '<span style="color: var(--muted);">Today\'s menu has not been updated.</span>';
+                mContent.innerHTML = '<span style="color: var(--muted);">Today\'s menu has not been updated.</span><span style="font-size:0.75rem; color:var(--muted-2); display:block; margin-top:8px;">Click to update &rarr;</span>';
             }
 
         } catch(err){
             console.error("Dashboard load error:", err);
-            // Fail gracefully
             document.querySelectorAll('[id^="dash"]').forEach(el => {
                 if(el.id.includes('Content')) el.innerHTML = '<span style="color: var(--muted);">Error loading data.</span>';
             });
         }
     }
     
-    function init(){
-        // Will be called by TesterModule.showMenu()
-    }
+    function init(){ }
     return { init, loadDashboard };
 })();
 
