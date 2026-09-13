@@ -53,7 +53,8 @@ const TimeModule=(function(){
     return{init};
 })();
 
-    const ToastModule=(function(){
+// FIXED TOAST MODULE
+const ToastModule=(function(){
     const c=document.getElementById('toast-container');
     const notifBtn=document.getElementById('notifBtn');
     function show(msg){
@@ -66,13 +67,13 @@ const TimeModule=(function(){
         if("Notification" in window && Notification.permission==="granted"){ try { new Notification("Tinkers Hatch Update", { body: msg }); } catch(e) {} }
     }
     async function requestPermission(){
-        if(!("Notification" in window)){ ToastModule.show("Notifications not supported on this device."); return; }
-        if(Notification.permission==="granted"){ ToastModule.show("Notifications are already enabled!"); return; }
+        if(!("Notification" in window)){ show("Notifications not supported on this device."); return; }
+        if(Notification.permission==="granted"){ show("Notifications are already enabled!"); return; }
         if(Notification.permission!=="denied"){
             const perm=await Notification.requestPermission();
-            if(perm==="granted"){ ToastModule.show("Push notifications enabled! You'll get updates now."); new Notification("Tinkers Hatch", { body: "Notifications successfully turned on!" }); } 
-            else { ToastModule.show("Notifications were blocked. You can change this in your browser settings."); }
-        } else { ToastModule.show("Notifications are blocked in your browser settings."); }
+            if(perm==="granted"){ show("Push notifications enabled! You'll get updates now."); new Notification("Tinkers Hatch", { body: "Notifications successfully turned on!" }); } 
+            else { show("Notifications were blocked. You can change this in your browser settings."); }
+        } else { show("Notifications are blocked in your browser settings."); }
     }
     function init(){
         if(notifBtn) notifBtn.addEventListener('click', requestPermission);
@@ -115,7 +116,122 @@ const DyslexiaModule=(function(){const b=document.body,k='th-dyslexia';function 
 const PaletteModule=(function(){const b=document.body,k='th-palette',p=['palette-ocean','palette-sunset','palette-berry'];function set(v){p.forEach(x=>b.classList.remove(x));b.classList.remove('season-winter','season-spring','season-summer','season-autumn');if(v!=='nature')b.classList.add('palette-'+v);safeSet(k,v);document.querySelectorAll('.palette-btn').forEach(btn=>btn.setAttribute('aria-pressed',btn.dataset.palette===v));if(v!=='nature')document.getElementById('seasonal-bg').innerHTML='';else{const t=safeGet('th-theme');if(!t||t==='light'){const s=SeasonalModule.getCurrentSeason();b.classList.add('season-'+s);generateSeasonalBackground(s)}}}function init(){const btns=document.querySelectorAll('.palette-btn');if(!btns.length)return;let s='nature';try{s=safeGet(k)||'nature'}catch(e){}set(s);btns.forEach(btn=>btn.addEventListener('click',()=>set(btn.dataset.palette)))}return{init}})();
 const RevealModule=(function(){function init(){if(!('IntersectionObserver'in window)){document.querySelectorAll('.reveal').forEach(e=>e.classList.add('in'));return}const ob=new IntersectionObserver(e=>{e.forEach(en=>{if(en.isIntersecting){en.target.classList.add('in');ob.unobserve(en.target)}})},{threshold:0,rootMargin:'0px 0px -10% 0px'});document.querySelectorAll('.reveal').forEach(e=>ob.observe(e))}return{init}})();
 const MoodModule=(function(){const r={happy:{t:"We're glad you're feeling happy!",b:"Maybe today is a good day to share that with someone. A smile, a wave, or a 'good morning' can make someone else's day brighter too."},calm:{t:"Calm is a lovely way to feel.",b:"The garden is a beautiful spot for quiet moments today. There's a bench by the apple tree that catches the morning sun."},curious:{t:"Curiosity is a wonderful thing.",b:"There's a new art project starting this afternoon — trying something new is always welcome, even just to watch at first."},tired:{t:"It's okay to feel tired.",b:"Be gentle with yourself today. The cozy lounge has comfortable chairs and a pot of tea is never far away. Rest counts as doing something."},excited:{t:"How lovely — excitement!",b:"Channel that energy! Today's baking session is making bread rolls, and there's a film afternoon with proper popcorn at 3pm."}};function init(){const btns=document.querySelectorAll('.mood-btn'),md=document.getElementById('moodDefault'),mm=document.getElementById('moodMessage');if(!btns.length||!md||!mm)return;btns.forEach(btn=>btn.addEventListener('click',()=>{const k=btn.dataset.mood,res=r[k];if(!res)return;btns.forEach(b=>b.classList.remove('active'));btn.classList.add('active');md.hidden=true;mm.hidden=false;mm.innerHTML=`<div style="max-width:600px;margin:0 auto;"><div class="display font-extrabold text-xl mb-4" style="color:var(--bark)">${res.t}</div><p style="color:var(--bark-soft);line-height:1.6;">${res.b}</p></div>`}))}return{init}})();
-const LightboxModule=(function(){function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}let imgs=[];const fallbackImgs=shuffle([{src:'https://i.ibb.co/xSq92n0r/123-1.jpg',alt:'Beautiful flower 1'},{src:'https://i.ibb.co/WNjYC10y/123-2.jpg',alt:'Beautiful flower 2'},{src:'https://i.ibb.co/Y7WfbmDV/123-3.jpg',alt:'Beautiful flower 3'},{src:'https://i.ibb.co/wFBgfMtX/123-4.jpg',alt:'Beautiful flower 4'},{src:'https://i.ibb.co/4nKQ3X6s/123-5.jpg',alt:'Beautiful flower 5'},{src:'https://i.ibb.co/dsc78qPJ/123-6.jpg',alt:'Beautiful flower 6'}]);let cur=0,lb,li,lc,lp,ln,lct,g,anim=false,tsx=0;async function loadImages(){if(!supabaseClient){imgs=fallbackImgs;renderGallery();return;}try{const{data,error}=await supabaseClient.storage.from('gallery').list('',{limit:100,offset:0,sortBy:{column:'created_at',order:'desc'}});if(data&&data.length>0){imgs=data.filter(file=>!file.name.startsWith('.')).map(file=>{const{data:urlData}=supabaseClient.storage.from('gallery').getPublicUrl(file.name);let alt='Gallery Photo';if(file.name.includes('_caption_')){const match=file.name.match(/_caption_([^_]+)/);if(match&&match[1]){alt=match[1].replace(/-/g,' ');}}return{src:urlData.publicUrl,alt:alt};});}else{imgs=fallbackImgs;}}catch(e){imgs=fallbackImgs;}renderGallery();}function renderGallery(){if(!g)return;g.innerHTML='';if(imgs.length===0){g.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">No photos yet.</p>';return;}imgs.slice(0,6).forEach((io,idx)=>{const t=document.createElement('img');t.src=io.src;t.alt=`View ${io.alt}`;t.className='gallery-thumb blur-load';t.loading='lazy';t.addEventListener('load',()=>t.classList.add('loaded'));t.addEventListener('click',()=>o(idx));g.appendChild(t);});const v=document.createElement('button');v.className='gallery-cta';v.setAttribute('aria-label','Open full photo gallery');v.innerHTML=`<div class="gallery-cta-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2-3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></div><div class="gallery-cta-text">View All ${imgs.length} Photos</div>`;v.addEventListener('click',()=>o(0));g.appendChild(v);}function pl(){for(let i=-1;i<=2;i++){const idx=(cur+i+imgs.length)%imgs.length;const img=new Image();img.src=imgs[idx].src}}function r(d){if(anim)return;anim=true;const oc=d==='next'?'flip-out-next':'flip-out-prev',ic=d==='next'?'flip-in-next':'flip-in-prev';li.classList.add(oc);li.classList.remove('flip-in-next','flip-in-prev');void li.offsetWidth;setTimeout(()=>{li.src=imgs[cur].src;li.alt=imgs[cur].alt;lct.textContent=`${cur+1} / ${imgs.length}`;li.classList.remove(oc);void li.offsetWidth;li.classList.add(ic);setTimeout(()=>{anim=false;pl()},250)},250)}function o(i){cur=i;li.classList.remove('flip-in-next','flip-in-prev','flip-out-next','flip-out-prev');li.src=imgs[cur].src;li.alt=imgs[cur].alt;lct.textContent=`${cur+1} / ${imgs.length}`;lb.classList.add('active');anim=false;pl()}function c(){lb.classList.remove('active')}function n(){if(anim)return;cur=(cur+1)%imgs.length;r('next')}function p(){if(anim)return;cur=(cur-1+imgs.length)%imgs.length;r('prev')}function hk(e){if(!lb.classList.contains('active'))return;switch(e.key){case'Escape':c();break;case'ArrowRight':n();break;case'ArrowLeft':p();break}}function hts(e){tsx=e.changedTouches[0].clientX}function hte(e){if(!lb.classList.contains('active'))return;const tex=e.changedTouches[0].clientX,d=tex-tsx;if(Math.abs(d)>50){if(d<0)n();else p()}}function init(){lb=document.getElementById('lightbox');li=document.getElementById('lightboxImg');lc=document.getElementById('lightboxClose');lp=document.getElementById('lightboxPrev');ln=document.getElementById('lightboxNext');lct=document.getElementById('lightboxCounter');g=document.getElementById('galleryGrid');if(!lb||!g)return;loadImages();lc.addEventListener('click',c);ln.addEventListener('click',e=>{e.stopPropagation();n()});lp.addEventListener('click',e=>{e.stopPropagation();p()});li.addEventListener('click',e=>{e.stopPropagation();n()});lb.addEventListener('click',e=>{if(e.target===lb)c()});document.addEventListener('keydown',hk);lb.addEventListener('touchstart',hts,{passive:true});lb.addEventListener('touchend',hte,{passive:true})}return{init,loadImages};})();
+
+// UPDATED LIGHTBOX MODULE FOR CATEGORIES
+const LightboxModule=(function(){
+    function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+    let imgs=[];
+    const fallbackImgs=shuffle([{src:'https://i.ibb.co/xSq92n0r/123-1.jpg',alt:'Beautiful flower 1'},{src:'https://i.ibb.co/WNjYC10y/123-2.jpg',alt:'Beautiful flower 2'},{src:'https://i.ibb.co/Y7WfbmDV/123-3.jpg',alt:'Beautiful flower 3'},{src:'https://i.ibb.co/wFBgfMtX/123-4.jpg',alt:'Beautiful flower 4'},{src:'https://i.ibb.co/4nKQ3X6s/123-5.jpg',alt:'Beautiful flower 5'},{src:'https://i.ibb.co/dsc78qPJ/123-6.jpg',alt:'Beautiful flower 6'}]);
+    let cur=0,lb,li,lc,lp,ln,lct,g,anim=false,tsx=0;
+    
+    async function loadImages(){
+        if(!supabaseClient){imgs=fallbackImgs;renderGallery();return;}
+        try{
+            const{data,error}=await supabaseClient.from('gallery_items').select('*').order('created_at',{ascending:false});
+            if(data&&data.length>0){
+                imgs=data.map(item=>{
+                    const{data:urlData}=supabaseClient.storage.from('gallery').getPublicUrl(item.storage_path);
+                    return{src:urlData.publicUrl,alt:item.caption||'Gallery Photo',category:item.category||'General'};
+                });
+            }else{imgs=fallbackImgs;}
+        }catch(e){imgs=fallbackImgs;}
+        renderGallery();
+    }
+    
+    function renderGallery(){
+        if(!g)return;
+        g.innerHTML='';
+        if(imgs.length===0){g.innerHTML='<p style="color:var(--bark-soft);text-align:center;grid-column:1/-1;">No photos yet.</p>';return;}
+        
+        const categories = ['All', ...new Set(imgs.map(i => i.category).filter(Boolean))];
+        if(categories.length > 1){
+            const filterDiv = document.createElement('div');
+            filterDiv.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;grid-column:1/-1;justify-content:center;';
+            categories.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.textContent = cat;
+                btn.className = 'gallery-filter-btn';
+                btn.dataset.category = cat;
+                btn.style.cssText = 'padding: 6px 14px; border: 1px solid var(--border); background: var(--cream-deep); color: var(--bark); border-radius: 20px; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: var(--transition);';
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.gallery-filter-btn').forEach(b => {
+                        b.style.background = 'var(--cream-deep)'; b.style.color = 'var(--bark)';
+                    });
+                    e.target.style.background = 'var(--terracotta)'; e.target.style.color = '#fff';
+                    renderFilteredGallery(cat);
+                });
+                filterDiv.appendChild(btn);
+            });
+            g.appendChild(filterDiv);
+            filterDiv.querySelector('button').click();
+        } else {
+            renderFilteredGallery('All');
+        }
+    }
+    
+    function renderFilteredGallery(category){
+        const thumbs = g.querySelectorAll('.gallery-thumb, .gallery-cta');
+        thumbs.forEach(t => t.remove());
+        
+        const filtered = category === 'All' ? imgs : imgs.filter(i => i.category === category);
+        filtered.slice(0,6).forEach((io,idx)=>{
+            const t=document.createElement('img');
+            t.src=io.src;t.alt=`View ${io.alt}`;
+            t.className='gallery-thumb blur-load';t.loading='lazy';
+            t.addEventListener('load',()=>t.classList.add('loaded'));
+            t.addEventListener('click',()=>o(idx, filtered));
+            g.appendChild(t);
+        });
+        
+        if(filtered.length > 0){
+            const v=document.createElement('button');
+            v.className='gallery-cta';
+            v.setAttribute('aria-label','Open full photo gallery');
+            v.innerHTML=`<div class="gallery-cta-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2-3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></div><div class="gallery-cta-text">View All ${filtered.length} Photos</div>`;
+            v.addEventListener('click',()=>o(0, filtered));
+            g.appendChild(v);
+        }
+    }
+    
+    function pl(){for(let i=-1;i<=2;i++){const idx=(cur+i+imgs.length)%imgs.length;const img=new Image();img.src=imgs[idx].src}}
+    function r(d){if(anim)return;anim=true;const oc=d==='next'?'flip-out-next':'flip-out-prev',ic=d==='next'?'flip-in-next':'flip-in-prev';li.classList.add(oc);li.classList.remove('flip-in-next','flip-in-prev');void li.offsetWidth;setTimeout(()=>{li.src=imgs[cur].src;li.alt=imgs[cur].alt;lct.textContent=`${cur+1} / ${imgs.length}`;li.classList.remove(oc);void li.offsetWidth;li.classList.add(ic);setTimeout(()=>{anim=false;pl()},250)},250)}
+    
+    function o(i, list){
+        if(list) imgs = list; 
+        cur=i;
+        li.classList.remove('flip-in-next','flip-in-prev','flip-out-next','flip-out-prev');
+        li.src=imgs[cur].src;li.alt=imgs[cur].alt;lct.textContent=`${cur+1} / ${imgs.length}`;
+        lb.classList.add('active');anim=false;pl();
+    }
+    function c(){lb.classList.remove('active')}
+    function n(){if(anim)return;cur=(cur+1)%imgs.length;r('next')}
+    function p(){if(anim)return;cur=(cur-1+imgs.length)%imgs.length;r('prev')}
+    function hk(e){if(!lb.classList.contains('active'))return;switch(e.key){case'Escape':c();break;case'ArrowRight':n();break;case'ArrowLeft':p();break}}
+    function hts(e){tsx=e.changedTouches[0].clientX}
+    function hte(e){if(!lb.classList.contains('active'))return;const tex=e.changedTouches[0].clientX,d=tex-tsx;if(Math.abs(d)>50){if(d<0)n();else p()}}
+    
+    function init(){
+        lb=document.getElementById('lightbox');
+        li=document.getElementById('lightboxImg');
+        lc=document.getElementById('lightboxClose');
+        lp=document.getElementById('lightboxPrev');
+        ln=document.getElementById('lightboxNext');
+        lct=document.getElementById('lightboxCounter');
+        g=document.getElementById('galleryGrid');
+        if(!lb||!g)return;
+        loadImages();
+        lc.addEventListener('click',c);
+        ln.addEventListener('click',e=>{e.stopPropagation();n()});
+        lp.addEventListener('click',e=>{e.stopPropagation();p()});
+        li.addEventListener('click',e=>{e.stopPropagation();n()});
+        lb.addEventListener('click',e=>{if(e.target===lb)c()});
+        document.addEventListener('keydown',hk);
+        lb.addEventListener('touchstart',hts,{passive:true});
+        lb.addEventListener('touchend',hte,{passive:true})
+    }
+    return{init,loadImages};
+})();
+
 const FooterA11yModule=(function(){function init(){const b=document.getElementById('footerA11y');if(!b)return;b.addEventListener('click',()=>{const n=document.createElement('div');n.setAttribute('role','alert');n.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bark);color:#fff;padding:16px 24px;border-radius:8px;z-index:3000;max-width:90vw;box-shadow:0 10px 30px rgba(0,0,0,.2);font-size:14px;';n.innerHTML='Our full accessibility statement is available on request. Please call us on <strong>01435 863119</strong> or email <strong>services@tinkershatch.co.uk</strong> and we will send it to you in your preferred format.';document.body.appendChild(n);setTimeout(()=>{n.style.transition='opacity .4s ease';n.style.opacity='0';setTimeout(()=>n.remove(),400)},5000)})}return{init}})();
 const ProgressModule=(function(){function init(){const b=document.getElementById('progress-bar');if(!b)return;let t=false;function u(){const ws=window.scrollY||document.documentElement.scrollTop,h=document.documentElement.scrollHeight-window.innerHeight,sc=h>0?(ws/h)*100:0;b.style.width=sc+'%';t=false}window.addEventListener('scroll',()=>{if(!t){requestAnimationFrame(u);t=true}},{passive:true})}return{init}})();
 const ParallaxModule=(function(){function init(){if(window.matchMedia('(max-width: 768px)').matches) return;const items=document.querySelectorAll('[data-parallax]');if(!items.length||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;let ticking=false;function update(){const sy=window.pageYOffset;const updates=[];items.forEach(i=>{const speed=parseFloat(i.dataset.parallax);if(i.dataset.pt==='fixed'){updates.push({el:i, transform:`translate3d(0, ${sy*speed}px, 0)`})}else{const rect=i.getBoundingClientRect();const centerOffset=(rect.top+rect.height/2)-(window.innerHeight/2);updates.push({el:i, transform:`translate3d(0, ${centerOffset*speed*-1}px, 0)`})}});updates.forEach(u=>u.el.style.transform=u.transform);ticking=false}function onScroll(){if(!ticking){window.requestAnimationFrame(update);ticking=true}}window.addEventListener('scroll',onScroll,{passive:true});update()}return{init}})();
@@ -292,6 +408,7 @@ const AuthModule=(function(){
     return { init };
 })();
 
+// FULLY UPDATED TESTER MODULE
 const TesterModule=(function(){
     const m=document.getElementById('testerModal'),
           la=document.getElementById('testerLogin'),
@@ -485,7 +602,71 @@ const TesterModule=(function(){
             .catch(err=>ToastModule.show('Error broadcasting message.'));
     }
     
-                // Compress image helper
+    // UPDATED UPLOAD LOGIC
+    async function uploadPhoto(){
+        const sb = window.supabaseClient;
+        const fileInput=document.getElementById('photoUploadInput');
+        const files = Array.from(fileInput.files);
+        
+        if(files.length === 0){
+            showToast("Please select at least one photo first.");
+            return;
+        }
+
+        const captionInput=document.getElementById('photoCaptionInput');
+        const categoryInput=document.getElementById('photoCategoryInput');
+        const category = categoryInput ? categoryInput.value : 'General';
+        const captionText = captionInput ? captionInput.value.trim() : '';
+        let caption = captionText ? '_caption_'+captionText.replace(/[^a-zA-Z0-9 ]/g,'').replace(/\s+/g,'-') : '';
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for(let i = 0; i < files.length; i++){
+            const file = files[i];
+            if(!file.type.startsWith('image/')){ failCount++; continue; }
+            showToast(`Processing & compressing photo ${i + 1} of ${files.length}...`);
+            try {
+                const compressedBlob = await compressImage(file, 1200);
+                const baseName = file.name.replace(/\.[^/.]+$/, "");
+                const fileName=`photo_${Date.now()}_${i}${caption}_${baseName}.jpg`;
+                
+                // 1. Upload the file to Storage
+                const { error: upErr } = await sb.storage.from('gallery').upload(fileName, compressedBlob);
+                if(upErr) throw upErr;
+                
+                // 2. Save details to the Database
+                const { error: dbErr } = await sb.from('gallery_items').insert([{ 
+                    storage_path: fileName, 
+                    caption: captionText, 
+                    category: category 
+                }]);
+                if(dbErr) throw dbErr;
+
+                successCount++;
+            } catch(err) {
+                console.error("Upload error:", err);
+                failCount++;
+            }
+        }
+
+        if(successCount > 0){
+            showToast(`${successCount} photo(s) uploaded successfully!`);
+            fetch('https://ntfy.sh/tinkers-hatch-live',{method:'POST',body:'New photos added to the gallery!'}).catch(()=>{});
+            fileInput.value='';
+            if(captionInput) captionInput.value='';
+            const dropZone = document.getElementById('photoDropZone');
+            if(dropZone) dropZone.innerHTML = '<span id="photoDropText">Drag & drop photos here<br>or click to select</span>';
+            setTimeout(() => {
+                if(typeof LightboxModule!=='undefined') LightboxModule.loadImages();
+                renderPhotoAdmin();
+            }, 1500);
+        } else {
+            showToast("Upload failed. Please ensure you are selecting valid image files.");
+        }
+    }
+    
+    // COMPRESSION HELPER
     function compressImage(file, maxWidth) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -494,29 +675,20 @@ const TesterModule=(function(){
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    
                     let width = img.width;
                     let height = img.height;
-                    
                     if (width > maxWidth) {
                         const ratio = maxWidth / width;
                         width = maxWidth;
                         height = height * ratio;
                     }
-                    
                     canvas.width = width;
                     canvas.height = height;
-                    
-                    // Draw white background for transparent PNGs
                     ctx.fillStyle = '#ffffff';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                     ctx.drawImage(img, 0, 0, width, height);
-                    
-                    // Convert to Blob (Universally supported)
                     canvas.toBlob((blob) => {
-                        if (!blob) {
-                            return reject(new Error('Canvas to Blob conversion failed'));
-                        }
+                        if (!blob) { return reject(new Error('Canvas to Blob conversion failed')); }
                         resolve(blob);
                     }, 'image/jpeg', 0.7);
                 };
@@ -527,44 +699,86 @@ const TesterModule=(function(){
             reader.readAsDataURL(file);
         });
     }
+
+    // UPDATED ADMIN RENDERING
+    async function renderPhotoAdmin(){
+        const sb = window.supabaseClient;
+        const ac=document.getElementById('adminPhotoContainer');
+        if(!ac) return;
+        ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">Loading photos...</p>';
+        try{
+            const{data,error}=await sb.from('gallery_items').select('*').order('created_at',{ascending:false});
+            if(error) throw error;
+            if(!data||data.length===0){ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No photos found.</p>';return;}
             
-            // Select All Listener
+            let toolbar = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;">
+                <label style="font-size:.8rem; display:flex; align-items:center; gap:8px; cursor:pointer; color: var(--fg);">
+                    <input type="checkbox" id="selectAllPhotos" style="width:16px; height:16px; cursor:pointer;"> Select All
+                </label>
+                <button id="deleteSelectedPhotosBtn" class="tester-btn" style="width:auto;margin:0;padding:6px 12px;font-size:0.7rem;background:var(--danger); color:#fff;">Remove Selected</button>
+            </div>`;
+            
+            ac.innerHTML = toolbar + data.map(item => {
+                const { data: urlData } = sb.storage.from('gallery').getPublicUrl(item.storage_path);
+                const imgUrl = urlData.publicUrl;
+                return `<div class="admin-film-item" style="padding: 8px 12px; display: flex; align-items: center; gap: 12px;">
+                            <input type="checkbox" class="photo-check" data-id="${item.id}" data-path="${item.storage_path}" style="width:20px; height:20px; cursor:pointer; flex-shrink:0;">
+                            <img src="${imgUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; flex-shrink: 0;">
+                            <div style="flex:1;">
+                                <span style="font-size:.8rem;font-weight:700;word-break:break-all; display:block;">${item.caption || item.storage_path}</span>
+                                <span style="font-size:0.7rem; background: var(--accent-soft); color: var(--accent); padding: 2px 6px; border-radius: 4px; margin-top: 2px; display: inline-block;">${item.category}</span>
+                            </div>
+                            <button class="tester-btn del-photo-btn" data-id="${item.id}" data-path="${item.storage_path}" style="width:auto;margin:0;padding:4px 8px;font-size:0.7rem;background:var(--danger); color:#fff;">Delete</button>
+                        </div>`;
+            }).join('');
+            
+            ac.querySelectorAll('.del-photo-btn').forEach(btn=>btn.addEventListener('click',async(e)=>{
+                const id=e.target.dataset.id;
+                const path=e.target.dataset.path;
+                try{
+                    await sb.storage.from('gallery').remove([path]);
+                    await sb.from('gallery_items').delete().eq('id', id);
+                    showToast('Photo deleted!');
+                    renderPhotoAdmin();
+                    if(typeof LightboxModule!=='undefined') LightboxModule.loadImages();
+                }catch(err){
+                    showToast('Error deleting photo.');
+                }
+            }));
+            
             const selectAll = ac.querySelector('#selectAllPhotos');
             if(selectAll) {
                 selectAll.addEventListener('change', (e) => {
-                    document.querySelectorAll('.photo-check').forEach(cb => {
-                        cb.checked = e.target.checked;
-                    });
+                    document.querySelectorAll('.photo-check').forEach(cb => cb.checked = e.target.checked);
                 });
             }
             
-            // Multi-Delete Listener
             const multiDelBtn = ac.querySelector('#deleteSelectedPhotosBtn');
             if(multiDelBtn) {
                 multiDelBtn.addEventListener('click', async () => {
                     const checkboxes = document.querySelectorAll('.photo-check:checked');
-                    if(checkboxes.length === 0){
-                        ToastModule.show("Please select at least one photo to delete.");
-                        return;
-                    }
-                    
+                    if(checkboxes.length === 0){ showToast("Please select at least one photo to delete."); return; }
+                    const ids = Array.from(checkboxes).map(cb => cb.dataset.id);
                     const paths = Array.from(checkboxes).map(cb => cb.dataset.path);
-                    if(confirm(`Are you sure you want to delete ${paths.length} photo(s)?`)){
-                        ToastModule.show("Deleting photos...");
+                    if(confirm(`Are you sure you want to delete ${ids.length} photo(s)?`)){
+                        showToast("Deleting photos...");
                         try {
-                            const { error } = await sb.storage.from('gallery').remove(paths);
-                            if(error) throw error;
-                            
-                            ToastModule.show(`${paths.length} photo(s) deleted successfully!`);
+                            await sb.storage.from('gallery').remove(paths);
+                            await sb.from('gallery_items').delete().in('id', ids);
+                            showToast(`${ids.length} photo(s) deleted successfully!`);
                             renderPhotoAdmin();
                             if(typeof LightboxModule!=='undefined') LightboxModule.loadImages();
                         } catch(err){
-                            ToastModule.show("Error deleting photos.");
+                            showToast("Error deleting photos.");
                         }
                     }
                 });
             }
-        
+        }catch(err){
+            ac.innerHTML='<p class="text-sm" style="color: var(--danger);">Error loading photos.</p>';
+        }
+    }
+    
     function init(){
         const modalExists = document.getElementById('testerModal');
         if(!modalExists) return; 
@@ -607,7 +821,7 @@ const TesterModule=(function(){
         showLogin(); 
         checkAuthState();
     }
-    return{init};
+    return{init, renderPhotoAdmin, uploadPhoto};
 })();
 
 // === TINKERSHATCH CUSTOM FEATURES ===
@@ -735,7 +949,7 @@ function initializeAppModules() {
     console.log("Haven Portal Modules Loaded Successfully.");
 }
 
-// Safe boot wrapper
+// Safe boot wrapper (Ensures Supabase is loaded before initializing)
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
         supabaseClient = window.supabase.createClient('https://bsbwrvqevtoujfvcvvju.supabase.co', 'sb_publishable_c6IrevCpSel1njeKV0PhEA_Rbw2UdAx');
