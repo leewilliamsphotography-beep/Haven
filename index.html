@@ -366,7 +366,14 @@
             <h4>🍽️ Today's Menu</h4>
             <div id="dashMenuContent" style="font-size: 0.9rem; color: var(--muted);">Loading...</div>
         </div>
-    </div>
+                <div class="admin-card" id="dashWeather" style="grid-column: 1 / -1;">
+            <h4>🌤️ Tomorrow's Activity Suggestion</h4>
+            <div id="dashWeatherContent" style="font-size: 0.9rem; color: var(--muted);">Loading...</div>
+        </div>
+        <div class="admin-card" id="dashCelebrations" style="grid-column: 1 / -1;">
+            <h4>🎉 Upcoming Celebrations</h4>
+            <div id="dashCelebContent" style="font-size: 0.9rem; color: var(--muted);">Loading...</div>
+        </div>
 </div>
             <div id="tab-photos" class="tester-tab-content active">
     <div class="admin-header"><h3>Gallery Manager</h3><p>Upload new photos for the website gallery.</p></div>
@@ -742,7 +749,34 @@
             }
         });
     }
+    // 14. Keyboard Shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ignore if typing in an input/textarea
+        const target = e.target;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
 
+        const menu = document.getElementById('testerMenu');
+        if (!menu || menu.style.display === 'none') return; // Only work if logged in
+
+        let tabName = null;
+        switch(e.key.toLowerCase()) {
+            case '1': case 'd': tabName = 'dashboard'; break;
+            case '2': case 'p': tabName = 'photos'; break;
+            case '3': case 'e': tabName = 'events'; break;
+            case '4': case 'm': tabName = 'menu'; break;
+            case '5': case 'w': tabName = 'wilf'; break;
+            case '6': case 'u': tabName = 'updates'; break;
+            case '7': case 'f': tabName = 'films'; break;
+            case '8': case 'c': tabName = 'community'; break;
+            case '9': case 'b': tabName = 'briefing'; break;
+            case 's': tabName = 'settings'; break;
+        }
+
+        if(tabName) {
+            const btn = document.querySelector(`button[data-tab="${tabName}"]`);
+            if(btn) btn.click();
+        }
+    });
     function initStaffSeasonFX() {
         const fxContainer = document.getElementById('staff-seasonal-fx'); if (!fxContainer) return;
         let season = localStorage.getItem('tinkers_season');

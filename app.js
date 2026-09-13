@@ -428,7 +428,7 @@ const AuthModule=(function(){
     }
     return { init };
 })();
-const DashboardModule=(function(){
+const const DashboardModule=(function(){
     async function loadDashboard(){
         const sb = window.supabaseClient;
         if(!sb) return;
@@ -438,26 +438,22 @@ const DashboardModule=(function(){
         const currentDayName = now.toLocaleDateString('en-GB', { weekday: 'long' });
         
         try {
-            // Fetch all data in parallel for speed
-            const [briefingRes, wilfRes, enquiriesRes, eventsRes, menuRes] = await Promise.all([
+            const [briefingRes, wilfRes, enquiriesRes, eventsRes, menuRes, celebRes] = await Promise.all([
                 sb.from('daily_briefing').select('message').eq('id',1).single(),
                 sb.from('wilf_status').select('is_visiting').eq('id',1).single(),
                 sb.from('enquiries').select('id, created_at'),
                 sb.from('events').select('*').gte('event_date', todayStr).order('event_date',{ascending:true}),
-                sb.from('weekly_menu').select('*').eq('day_name', currentDayName).single()
+                sb.from('weekly_menu').select('*').eq('day_name', currentDayName).single(),
+                sb.from('celebrations').select('*').order('month',{ascending:true}).order('day',{ascending:true})
             ]);
 
-            // Helper function to make the entire card clickable
-                       // Helper function to make the entire card clickable
             function makeCardClickable(cardId, tabName) {
                 const card = document.getElementById(cardId);
                 if(card) {
                     card.style.cursor = 'pointer';
                     card.style.transition = 'transform 0.2s, border-color 0.2s';
-                    // Hover effects
                     card.onmouseenter = () => { card.style.transform = 'translateY(-3px)'; card.style.borderColor = 'var(--accent)'; };
                     card.onmouseleave = () => { card.style.transform = 'translateY(0)'; card.style.borderColor = 'var(--border)'; };
-                    // Click to navigate (Direct DOM manipulation to avoid click() being swallowed)
                     card.onclick = () => {
                         document.querySelectorAll('.tester-tab-btn').forEach(btn => btn.classList.remove('active'));
                         document.querySelectorAll('.tester-tab-content').forEach(tab => { tab.classList.remove('active'); tab.style.display = 'none'; });
@@ -472,12 +468,12 @@ const DashboardModule=(function(){
                 }
             }
 
-            // Attach click events to the static cards
             makeCardClickable('dashBriefing', 'briefing');
             makeCardClickable('dashWilf', 'wilf');
             makeCardClickable('dashEnquiries', 'enquiries');
             makeCardClickable('dashEvents', 'events');
             makeCardClickable('dashMenu', 'menu');
+            makeCardClickable('dashCelebrations', 'celebrations');
 
             // 1. Briefing
             const bContent = document.getElementById('dashBriefingContent');
@@ -521,6 +517,50 @@ const DashboardModule=(function(){
                 mContent.innerHTML = '<span style="color: var(--muted);">Today\'s menu has not been updated.</span><span style="font-size:0.75rem; color:var(--muted-2); display:block; margin-top:8px;">Click to update &rarr;</span>';
             }
 
+            // 6. Weather Suggestion (Fetches live weather for tomorrow)
+            const wWeather = document.getElementById('dashWeatherContent');
+            try {
+                const weatherRes = await fetch('https://api.open-meteo.com/v1/forecast?latitude=50.96&longitude=0.21&daily=weather_code&timezone=GMT');
+                const weatherData = await weatherRes.json();
+                const tomorrowCode = weatherData.daily.weather_code[1];
+                let suggestion = '';
+                if (tomorrowCode === 0 || tomorrowCode <= 2) suggestion = "☀️ Sunny/Clear tomorrow: Plan a garden walk or outdoor tea!";
+                else if (tomorrowCode >= 3 && tomorrowCode <= 48) suggestion = "🌫️ Cloudy/Foggy tomorrow: A good day for indoor arts & crafts.";
+                else if ((tomorrowCode >= 51 && tomorrowCode <= 67) || (tomorrowCode >= 80 && tomorrowCode <= 82)) suggestion = "🌧️ Rain tomorrow: Perfect for a cozy movie afternoon.";
+                else if ((tomorrowCode >= 71 && tomorrowCode <= 77) || (tomorrowCode >= 85 && tomorrowCode <= 86)) suggestion = "❄️ Snow tomorrow: Keep warm, maybe some indoor baking.";
+                else if (tomorrowCode >= 95) suggestion = "⛈️ Storm tomorrow: Ensure all outdoor furniture is secured today.";
+                else suggestion = "Check weather for activity planning.";
+                wWeather.innerHTML = `<p style="color: var(--fg); font-size: 0.95rem;">${suggestion}</p>`;
+            } catch (e) {
+                wWeather.innerHTML = '<span style="color: var(--muted);">Weather forecast unavailable.</span>';
+            }
+
+            // 7. Upcoming Celebrations (Next 7 days)
+            const cContent = document.getElementById('dashCelebContent');
+            if(celebRes.data && celebRes.data.length > 0){
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const nextWeek = new Date(today);
+                nextWeek.setDate(today.getDate() + 7);
+                
+                const upcoming = celebRes.data.filter(c => {
+                    // Create a date object for this year's birthday
+                    let celebDate = new Date(today.getFullYear(), c.month - 1, c.day);
+                    if (celebDate < today) celebDate.setFullYear(today.getFullYear() + 1); // If passed, check next year
+                    
+                    return celebDate >= today && celebDate <= nextWeek;
+                }).slice(0, 3); // Top 3 upcoming
+
+                if(upcoming.length > 0){
+                    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                    cContent.innerHTML = upcoming.map(c => `<div style="background: var(--surface-2); padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; color: var(--fg);"><strong>${c.name}</strong> - ${c.day} ${monthNames[c.month-1]} (${c.type})</div>`).join('') + '<span style="font-size:0.75rem; color:var(--muted-2); display:block; margin-top:8px;">Click to manage &rarr;</span>';
+                } else {
+                    cContent.innerHTML = '<span style="color: var(--muted);">No celebrations in the next 7 days.</span><span style="font-size:0.75rem; color:var(--muted-2); display:block; margin-top:8px;">Click to add &rarr;</span>';
+                }
+            } else {
+                cContent.innerHTML = '<span style="color: var(--muted);">No celebrations listed.</span>';
+            }
+
         } catch(err){
             console.error("Dashboard load error:", err);
             document.querySelectorAll('[id^="dash"]').forEach(el => {
@@ -532,7 +572,6 @@ const DashboardModule=(function(){
     function init(){ }
     return { init, loadDashboard };
 })();
-
 // FULLY UPDATED TESTER MODULE
 const TesterModule=(function(){
     const m=document.getElementById('testerModal'),
