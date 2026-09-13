@@ -537,7 +537,7 @@ const TesterModule=(function(){
             ToastModule.show("Upload failed. Please ensure you are selecting valid image files.");
         }
     }
-    async function renderPhotoAdmin(){
+        async function renderPhotoAdmin(){
         const sb = window.supabaseClient;
         const ac=document.getElementById('adminPhotoContainer');
         if(!ac) return;
@@ -549,32 +549,78 @@ const TesterModule=(function(){
             const files=data.filter(file=>!file.name.startsWith('.'));
             if(files.length===0){ac.innerHTML='<p class="text-sm" style="color: var(--bark-soft);">No photos found.</p>';return;}
             
-            ac.innerHTML=files.map(file => {
+            // Multi-Delete Toolbar
+            let toolbar = `<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;">
+                <label style="font-size:.8rem; display:flex; align-items:center; gap:8px; cursor:pointer; color: var(--fg);">
+                    <input type="checkbox" id="selectAllPhotos" style="width:16px; height:16px; cursor:pointer;"> Select All
+                </label>
+                <button id="deleteSelectedPhotosBtn" class="tester-btn" style="width:auto;margin:0;padding:6px 12px;font-size:0.7rem;background:var(--danger); color:#fff;">Remove Selected</button>
+            </div>`;
+            
+            ac.innerHTML = toolbar + files.map(file => {
                 const { data: urlData } = sb.storage.from('gallery').getPublicUrl(file.name);
                 const imgUrl = urlData.publicUrl;
                 return `<div class="admin-film-item" style="padding: 8px 12px; display: flex; align-items: center; gap: 12px;">
+                            <input type="checkbox" class="photo-check" data-path="${file.name}" style="width:20px; height:20px; cursor:pointer; flex-shrink:0;">
                             <img src="${imgUrl}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; flex-shrink: 0;">
                             <span style="font-size:.8rem;font-weight:700;word-break:break-all; flex: 1;">${file.name}</span>
-                            <button class="tester-btn del-photo-btn" data-path="${file.name}" style="width:auto;margin:0;padding:4px 8px;font-size:0.7rem;background:var(--terracotta);">Delete</button>
+                            <button class="tester-btn del-photo-btn" data-path="${file.name}" style="width:auto;margin:0;padding:4px 8px;font-size:0.7rem;background:var(--danger); color:#fff;">Delete</button>
                         </div>`;
             }).join('');
             
+            // Single Delete Listeners (Global script handles the confirmation prompt)
             ac.querySelectorAll('.del-photo-btn').forEach(btn=>btn.addEventListener('click',async(e)=>{
                 const path=e.target.dataset.path;
-                if(confirm('Are you sure you want to delete this photo?')){
-                    try{
-                        const{error:delError}=await sb.storage.from('gallery').remove([path]);
-                        if(delError) throw delError;
-                        ToastModule.show('Photo deleted!');
-                        renderPhotoAdmin();
-                        if(typeof LightboxModule!=='undefined') LightboxModule.loadImages();
-                    }catch(err){
-                        ToastModule.show('Error deleting photo.');
-                    }
+                try{
+                    const{error:delError}=await sb.storage.from('gallery').remove([path]);
+                    if(delError) throw delError;
+                    ToastModule.show('Photo deleted!');
+                    renderPhotoAdmin();
+                    if(typeof LightboxModule!=='undefined') LightboxModule.loadImages();
+                }catch(err){
+                    ToastModule.show('Error deleting photo.');
                 }
             }));
+            
+            // Select All Listener
+            const selectAll = ac.querySelector('#selectAllPhotos');
+            if(selectAll) {
+                selectAll.addEventListener('change', (e) => {
+                    document.querySelectorAll('.photo-check').forEach(cb => {
+                        cb.checked = e.target.checked;
+                    });
+                });
+            }
+            
+            // Multi-Delete Listener
+            const multiDelBtn = ac.querySelector('#deleteSelectedPhotosBtn');
+            if(multiDelBtn) {
+                multiDelBtn.addEventListener('click', async () => {
+                    const checkboxes = document.querySelectorAll('.photo-check:checked');
+                    if(checkboxes.length === 0){
+                        ToastModule.show("Please select at least one photo to delete.");
+                        return;
+                    }
+                    
+                    const paths = Array.from(checkboxes).map(cb => cb.dataset.path);
+                    if(confirm(`Are you sure you want to delete ${paths.length} photo(s)?`)){
+                        ToastModule.show("Deleting photos...");
+                        try {
+                            const { error } = await sb.storage.from('gallery').remove(paths);
+                            if(error) throw error;
+                            
+                            ToastModule.show(`${paths.length} photo(s) deleted successfully!`);
+                            renderPhotoAdmin();
+                            if(typeof LightboxModule!=='undefined') LightboxModule.loadImages();
+                        } catch(err){
+                            ToastModule.show("Error deleting photos.");
+                        }
+                    }
+                });
+            }
+            
         }catch(err){
-            ac.innerHTML='<p class="text-sm" style="color: var(--terracotta);">Error loading photos.</p>';
+            ac.innerHTML='<p class="text-sm" style="color: var(--danger);">Error loading photos.</p>';
         }
     }
     
