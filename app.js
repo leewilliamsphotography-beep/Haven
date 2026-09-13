@@ -428,6 +428,82 @@ const AuthModule=(function(){
     }
     return { init };
 })();
+const DashboardModule=(function(){
+    async function loadDashboard(){
+        const sb = window.supabaseClient;
+        if(!sb) return;
+        
+        // Get current date strings
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+        const currentDayName = now.toLocaleDateString('en-GB', { weekday: 'long' });
+        
+        try {
+            // Fetch all data in parallel for speed
+            const [briefingRes, wilfRes, enquiriesRes, eventsRes, menuRes] = await Promise.all([
+                sb.from('daily_briefing').select('message').eq('id',1).single(),
+                sb.from('wilf_status').select('is_visiting').eq('id',1).single(),
+                sb.from('enquiries').select('id, created_at'),
+                sb.from('events').select('*').gte('event_date', todayStr).order('event_date',{ascending:true}),
+                sb.from('weekly_menu').select('*').eq('day_name', currentDayName).single()
+            ]);
+
+            // 1. Briefing
+            const bContent = document.getElementById('dashBriefingContent');
+            if(briefingRes.data && briefingRes.data.message && briefingRes.data.message.trim() !== ''){
+                bContent.innerHTML = `<p style="color: var(--fg); font-size: 1rem; font-weight: 600;">"${briefingRes.data.message}"</p>`;
+            } else {
+                bContent.innerHTML = '<p style="color: var(--muted);">No briefing set for today.</p>';
+            }
+
+            // 2. Wilf
+            const wContent = document.getElementById('dashWilfContent');
+            if(wilfRes.data && wilfRes.data.is_visiting){
+                wContent.innerHTML = '<span style="color: var(--accent); font-weight: 700; font-size: 1.1rem;">Wilf is visiting today! 🎉</span>';
+            } else {
+                wContent.innerHTML = '<span style="color: var(--muted);">Wilf is currently off-site.</span>';
+            }
+
+            // 3. Enquiries
+            const eContent = document.getElementById('dashEnquiriesContent');
+            const enqCount = enquiriesRes.data ? enquiriesRes.data.length : 0;
+            if(enqCount > 0){
+                eContent.innerHTML = `<span style="color: var(--fg); font-weight: 700; font-size: 1.5rem;">${enqCount}</span> <span style="color: var(--muted);">unread enquiry(s).</span>`;
+            } else {
+                eContent.innerHTML = '<span style="color: var(--muted);">Inbox zero! No new enquiries.</span>';
+            }
+
+            // 4. Events
+            const evContent = document.getElementById('dashEventsContent');
+            const todayEvents = eventsRes.data ? eventsRes.data.filter(ev => ev.event_date === todayStr) : [];
+            if(todayEvents.length > 0){
+                evContent.innerHTML = todayEvents.map(ev => `<div style="background: var(--surface-2); padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; color: var(--fg);"><strong>${ev.title}</strong><br><span style="font-size: 0.8rem; color: var(--muted);">${ev.description || ''}</span></div>`).join('');
+            } else {
+                evContent.innerHTML = '<span style="color: var(--muted);">No events scheduled for today.</span>';
+            }
+
+            // 5. Menu
+            const mContent = document.getElementById('dashMenuContent');
+            if(menuRes.data && menuRes.data.meal_text && menuRes.data.meal_text.trim() !== ''){
+                mContent.innerHTML = `<p style="color: var(--fg); font-size: 1rem; font-weight: 600;">${menuRes.data.meal_text}</p>`;
+            } else {
+                mContent.innerHTML = '<span style="color: var(--muted);">Today\'s menu has not been updated.</span>';
+            }
+
+        } catch(err){
+            console.error("Dashboard load error:", err);
+            // Fail gracefully
+            document.querySelectorAll('[id^="dash"]').forEach(el => {
+                if(el.id.includes('Content')) el.innerHTML = '<span style="color: var(--muted);">Error loading data.</span>';
+            });
+        }
+    }
+    
+    function init(){
+        // Will be called by TesterModule.showMenu()
+    }
+    return { init, loadDashboard };
+})();
 
 // FULLY UPDATED TESTER MODULE
 const TesterModule=(function(){
@@ -562,6 +638,7 @@ const TesterModule=(function(){
             if(typeof CelebrationModule!=='undefined') CelebrationModule.loadAdminCelebrations();
             if(typeof CommunityModule!=='undefined') CommunityModule.loadAdminCommunity();
             if(typeof MenuModule!=='undefined' && (userRole==='chef'||userRole==='admin')) MenuModule.loadAdminMenu();
+                        if(typeof DashboardModule!=='undefined') DashboardModule.loadDashboard();
             
             setTimeout(() => { renderPhotoAdmin(); }, 500);
             
