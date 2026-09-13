@@ -485,38 +485,64 @@ const TesterModule=(function(){
             .catch(err=>ToastModule.show('Error broadcasting message.'));
     }
     
-    async function uploadPhoto(){
+        async function uploadPhoto(){
         const sb = window.supabaseClient;
         const fileInput=document.getElementById('photoUploadInput');
-        const file=fileInput.files[0];
-        if(!file){ToastModule.show("Please select a file first.");return;}
-        if(!file.type.startsWith('image/')){ToastModule.show("Please upload an image file.");return;}
-        ToastModule.show("Uploading...");
+        const files = Array.from(fileInput.files); // Convert FileList to Array
+        
+        if(files.length === 0){
+            ToastModule.show("Please select at least one photo first.");
+            return;
+        }
+
         const captionInput=document.getElementById('photoCaptionInput');
         let caption=captionInput?captionInput.value.trim():'';
         if(caption){caption='_caption_'+caption.replace(/[^a-zA-Z0-9 ]/g,'').replace(/\s+/g,'-');}
-        const fileName=`photo_${Date.now()}${caption}_${file.name.replace(/\s+/g,'_')}`;
-        const{data,error}=await sb.storage.from('gallery').upload(fileName,file);
-        if(error){
-            ToastModule.show("Upload failed: "+error.message);
-        }else{
-            ToastModule.show("Photo uploaded successfully!");
+
+        let successCount = 0;
+        let failCount = 0;
+
+        // Loop through all selected files
+        for(let i = 0; i < files.length; i++){
+            const file = files[i];
+            if(!file.type.startsWith('image/')){
+                failCount++;
+                continue;
+            }
+
+            ToastModule.show(`Uploading photo ${i + 1} of ${files.length}...`);
+            
+            // Added an index (i) to the filename to prevent identical names from clashing
+            const safeName = file.name.replace(/\s+/g,'_');
+            const fileName=`photo_${Date.now()}_${i}${caption}_${safeName}`;
+            
+            try {
+                const { error } = await sb.storage.from('gallery').upload(fileName, file);
+                if(error) throw error;
+                successCount++;
+            } catch(err) {
+                failCount++;
+            }
+        }
+
+        // Final toast message based on results
+        if(successCount > 0){
+            ToastModule.show(`${successCount} photo(s) uploaded successfully!`);
             fetch('https://ntfy.sh/tinkers-hatch-live',{method:'POST',body:'New photos added to the gallery!'}).catch(()=>{});
             fileInput.value='';
             if(captionInput) captionInput.value='';
             
-            // Reset the drop zone UI back to normal
             const dropZone = document.getElementById('photoDropZone');
-            if(dropZone) dropZone.innerHTML = '<span id="photoDropText">Drag & drop photo here<br>or click to select</span>';
+            if(dropZone) dropZone.innerHTML = '<span id="photoDropText">Drag & drop photos here<br>or click to select</span>';
             
-            // ADD A 1.5 SECOND DELAY before refreshing the lists to allow Supabase to index the file
             setTimeout(() => {
                 if(typeof LightboxModule!=='undefined') LightboxModule.loadImages();
                 renderPhotoAdmin();
             }, 1500);
+        } else {
+            ToastModule.show("Upload failed. Please ensure you are selecting valid image files.");
         }
     }
-    
     async function renderPhotoAdmin(){
         const sb = window.supabaseClient;
         const ac=document.getElementById('adminPhotoContainer');

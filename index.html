@@ -341,18 +341,15 @@
                 <iframe src="haven.html" title="Haven Staff Messaging"></iframe>
             </div>
 
-            <div id="tab-photos" class="tester-tab-content active">
-                <div class="admin-header"><h3>Gallery Manager</h3><p>Upload new photos for the website gallery.</p></div>
-                <div class="admin-card">
-                    <h4>📤 Upload New Photo</h4>
-                    <div id="photoDropZone" class="photo-drop-zone"><span id="photoDropText">Drag & drop photo here<br>or click to select</span></div>
-                    <input type="file" id="photoUploadInput" accept="image/*" class="tester-input" style="display: none; margin-bottom: 16px;">
-                    <label class="admin-label">Caption</label>
-                    <input type="text" id="photoCaptionInput" class="tester-input" placeholder="e.g., Margaret's roses" style="margin-bottom: 16px;">
-                    <button id="uploadPhotoBtn" class="tester-btn" style="background: var(--accent); color: #0B0E14;">Upload Photo</button>
-                </div>
-                <div class="admin-card"><h4>Manage Existing</h4><div id="adminPhotoContainer" class="space-y-3 mt-6 max-h-60 overflow-y-auto text-left"></div></div>
-            </div>
+            <div class="admin-card">
+    <h4>📤 Upload New Photos</h4>
+    <div id="photoDropZone" class="photo-drop-zone"><span id="photoDropText">Drag & drop photos here<br>or click to select</span></div>
+    <!-- Added 'multiple' attribute here -->
+    <input type="file" id="photoUploadInput" accept="image/*" multiple class="tester-input" style="display: none; margin-bottom: 16px;">
+    <label class="admin-label">Caption (Applies to all selected photos)</label>
+    <input type="text" id="photoCaptionInput" class="tester-input" placeholder="e.g., Margaret's roses" style="margin-bottom: 16px;">
+    <button id="uploadPhotoBtn" class="tester-btn" style="background: var(--accent); color: #0B0E14;">Upload Photos</button>
+</div>
 
             <div id="tab-events" class="tester-tab-content">
                 <div class="admin-header"><h3>Events Manager</h3><p>Add upcoming events to the calendar.</p></div>
@@ -593,19 +590,27 @@
     });
 
     // 5. Drag & Drop Photo Upload
-    const dropZone = document.getElementById('photoDropZone'); const fileInput = document.getElementById('photoUploadInput');
-    function handleFile(file) {
-        if (!file) return; const reader = new FileReader();
+const dropZone = document.getElementById('photoDropZone'); const fileInput = document.getElementById('photoUploadInput');
+function handleFile(files) {
+    if (!files || files.length === 0) return; 
+    
+    // If only one file, show the image preview
+    if (files.length === 1) {
+        const reader = new FileReader();
         reader.onload = function(e) { dropZone.innerHTML = `<img src="${e.target.result}" class="photo-preview-img"><span style="font-size: 0.8rem; color: var(--muted);">Click to change</span>`; };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(files[0]);
+    } else {
+        // If multiple files, show a counter instead of an image preview
+        dropZone.innerHTML = `<span style="font-size: 1.2rem;">📸 ${files.length} photos selected</span><span style="font-size: 0.8rem; color: var(--muted);">Click to change</span>`;
     }
-    if (dropZone && fileInput) {
-        dropZone.addEventListener('click', () => fileInput.click());
-        ['dragenter', 'dragover'].forEach(eventName => { dropZone.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('dragover'); }); });
-        ['dragleave', 'drop'].forEach(eventName => { dropZone.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('dragover'); }); });
-        dropZone.addEventListener('drop', (e) => { if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; handleFile(e.dataTransfer.files[0]); } });
-        fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFile(fileInput.files[0]); });
-    }
+}
+if (dropZone && fileInput) {
+    dropZone.addEventListener('click', () => fileInput.click());
+    ['dragenter', 'dragover'].forEach(eventName => { dropZone.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.add('dragover'); }); });
+    ['dragleave', 'drop'].forEach(eventName => { dropZone.addEventListener(eventName, (e) => { e.preventDefault(); e.stopPropagation(); dropZone.classList.remove('dragover'); }); });
+    dropZone.addEventListener('drop', (e) => { if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; handleFile(e.dataTransfer.files); } });
+    fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFile(fileInput.files); });
+}
 
     // 6. Enquiry Search
     document.addEventListener('input', function(e) {
