@@ -55,9 +55,6 @@ const DashboardModule = (function() {
                 const card = document.getElementById(cardId);
                 if (card) {
                     card.style.cursor = 'pointer';
-                    card.style.transition = 'transform 0.2s, border-color 0.2s';
-                    card.onmouseenter = () => { card.style.transform = 'translateY(-3px)'; card.style.borderColor = 'var(--accent)'; };
-                    card.onmouseleave = () => { card.style.transform = 'translateY(0)'; card.style.borderColor = 'var(--border)'; };
                     card.onclick = () => {
                         document.querySelectorAll('.tester-tab-btn').forEach(btn => btn.classList.remove('active'));
                         document.querySelectorAll('.tester-tab-content').forEach(tab => { tab.classList.remove('active'); tab.style.display = 'none'; });
@@ -77,40 +74,39 @@ const DashboardModule = (function() {
             makeCardClickable('dashMenu', 'menu');
 
             const bContent = document.getElementById('dashBriefingContent');
-            if (briefingRes.data && briefingRes.data.message && briefingRes.data.message.trim() !== '') {
-                bContent.innerHTML = `<p style="font-weight: 600;">"${briefingRes.data.message}"</p><span style="font-size:0.75rem; opacity:0.7;">Click to edit &rarr;</span>`;
-            } else {
-                bContent.innerHTML = '<p>No briefing set for today.</p>';
+            if (bContent) {
+                if (briefingRes.data && briefingRes.data.message && briefingRes.data.message.trim() !== '') {
+                    bContent.innerHTML = `<p style="font-weight: 600;">"${briefingRes.data.message}"</p><span style="font-size:0.75rem; opacity:0.7;">Click to edit &rarr;</span>`;
+                } else { bContent.innerHTML = '<p>No briefing set for today.</p>'; }
             }
 
             const wContent = document.getElementById('dashWilfContent');
-            if (wilfRes.data && wilfRes.data.is_visiting) {
-                wContent.innerHTML = '<span style="color: var(--accent); font-weight: 700;">Wilf is visiting today! 🎉</span>';
-            } else {
-                wContent.innerHTML = '<span>Wilf is off-site.</span>';
+            if (wContent) {
+                if (wilfRes.data && wilfRes.data.is_visiting) {
+                    wContent.innerHTML = '<span style="color: var(--accent); font-weight: 700;">Wilf is visiting today! 🎉</span>';
+                } else { wContent.innerHTML = '<span>Wilf is off-site.</span>'; }
             }
 
             const eContent = document.getElementById('dashEnquiriesContent');
-            const enqCount = enquiriesRes.data ? enquiriesRes.data.length : 0;
-            if (enqCount > 0) {
-                eContent.innerHTML = `<span style="font-size: 1.5rem; font-weight:700;">${enqCount}</span> unread.`;
-            } else {
-                eContent.innerHTML = '<span>Inbox zero!</span>';
+            if (eContent) {
+                const enqCount = enquiriesRes.data ? enquiriesRes.data.length : 0;
+                if (enqCount > 0) { eContent.innerHTML = `<span style="font-size: 1.5rem; font-weight:700;">${enqCount}</span> unread.`; } 
+                else { eContent.innerHTML = '<span>Inbox zero!</span>'; }
             }
 
             const evContent = document.getElementById('dashEventsContent');
-            const todayEvents = eventsRes.data ? eventsRes.data.filter(ev => ev.event_date === todayStr) : [];
-            if (todayEvents.length > 0) {
-                evContent.innerHTML = todayEvents.map(ev => `<div style="background: var(--surface-2); padding: 8px 12px; border-radius: 8px; margin-bottom: 8px;"><strong>${ev.title}</strong></div>`).join('');
-            } else {
-                evContent.innerHTML = '<span>No events scheduled for today.</span>';
+            if (evContent) {
+                const todayEvents = eventsRes.data ? eventsRes.data.filter(ev => ev.event_date === todayStr) : [];
+                if (todayEvents.length > 0) {
+                    evContent.innerHTML = todayEvents.map(ev => `<div style="background: var(--surface-2); padding: 8px 12px; border-radius: 8px; margin-bottom: 8px;"><strong>${ev.title}</strong></div>`).join('');
+                } else { evContent.innerHTML = '<span>No events scheduled for today.</span>'; }
             }
 
             const mContent = document.getElementById('dashMenuContent');
-            if (menuRes.data && menuRes.data.meal_text && menuRes.data.meal_text.trim() !== '') {
-                mContent.innerHTML = `<p style="font-weight: 600;">${menuRes.data.meal_text}</p>`;
-            } else {
-                mContent.innerHTML = '<span>Today\'s menu has not been updated.</span>';
+            if (mContent) {
+                if (menuRes.data && menuRes.data.meal_text && menuRes.data.meal_text.trim() !== '') {
+                    mContent.innerHTML = `<p style="font-weight: 600;">${menuRes.data.meal_text}</p>`;
+                } else { mContent.innerHTML = '<span>Today\'s menu has not been updated.</span>'; }
             }
 
         } catch (err) {
