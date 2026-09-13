@@ -502,33 +502,35 @@ const TesterModule = (function() {
         } catch (err) { ac.innerHTML = '<p>Error loading photos.</p>'; }
     }
     
-    function init() {
+        function init() {
         const modalExists = document.getElementById('testerModal');
         if (!modalExists) return; 
-        const closeBtn = document.getElementById('testerCloseBtn');
-        if (closeBtn) closeBtn.addEventListener('click', c);
-        if (loginBtn) loginBtn.addEventListener('click', function(e) { e.preventDefault(); login(); });
-        const logoutBtn = document.getElementById('testerLogoutBtn');
-        if (logoutBtn) logoutBtn.addEventListener('click', logout);
-        if (pi) pi.addEventListener('keypress', e => { if (e.key === 'Enter') { login(); } });
-        if (emailInput) emailInput.addEventListener('keypress', e => { if (e.key === 'Enter') { pi.focus(); } });
         
-        const uploadBtn = document.getElementById('uploadPhotoBtn');
-        if (uploadBtn) uploadBtn.addEventListener('click', uploadPhoto);
+        // BULLETPROOF GLOBAL LISTENER (Finds buttons even if HTML loads late)
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.id === 'testerLoginBtn') { e.preventDefault(); login(); }
+            if (e.target && e.target.id === 'testerLogoutBtn') { e.preventDefault(); logout(); }
+            if (e.target && e.target.id === 'testerCloseBtn') { c(); }
+            if (e.target && e.target.id === 'uploadPhotoBtn') { uploadPhoto(); }
+        });
         
-        if (m) m.addEventListener('click', e => { if (e.target === m) { c(); } });
+        // Handle Enter key on password field
+        if (pi) pi.addEventListener('keypress', e => { if (e.key === 'Enter') login(); });
+        if (emailInput) emailInput.addEventListener('keypress', e => { if (e.key === 'Enter') pi.focus(); });
+        
+        if (m) m.addEventListener('click', e => { if (e.target === m) c(); });
         
         const sb = window.supabaseClient;
         if (sb) {
             sb.auth.onAuthStateChange((event, session) => {
-                if (event === 'SIGNED_IN') { showMenu(); }
-                else if (event === 'SIGNED_OUT') { showLogin(); }
+                if (event === 'SIGNED_IN') showMenu();
+                else if (event === 'SIGNED_OUT') showLogin();
             });
         }
+        
         showLogin(); 
         checkAuthState();
     }
-    
     return { init, renderPhotoAdmin, uploadPhoto };
 })();
 
