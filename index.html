@@ -581,7 +581,7 @@
 </script>
 <script src="app.js?v=4"></script>
 <script>
-        // 1. Tab Switching
+    // 1. Tab Switching
     document.addEventListener('click', function(e) {
         const tabBtn = e.target.closest('.tester-tab-btn');
         if (tabBtn && tabBtn.dataset.tab) {
@@ -594,11 +594,7 @@
             const tabs = document.querySelector('.tester-tabs'); const backdrop = document.getElementById('mobileBackdrop');
             if (tabs) tabs.classList.remove('mobile-open'); if (backdrop) backdrop.style.display = 'none';
             localStorage.setItem('haven_active_tab', tabName);
-            
-            // NEW: Load dashboard data if the dashboard tab is clicked
-            if (tabName === 'dashboard' && typeof DashboardModule !== 'undefined') {
-                DashboardModule.loadDashboard();
-            }
+            if (tabName === 'dashboard' && typeof DashboardModule !== 'undefined') { DashboardModule.loadDashboard(); }
         }
     }, true);
 
@@ -622,15 +618,7 @@
         }
     }, true);
 
-    // 4. Seasonal Themes
-    document.querySelectorAll('.tester-season-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const season = this.dataset.season; localStorage.setItem('tinkers_season', season);
-            showToast(`Seasonal theme set to ${season}. The live site will update on refresh.`);
-        });
-    });
-
-    // 5. Drag & Drop Photo Upload (MULTI-PHOTO)
+    // 4. Drag & Drop Photo Upload (MULTI-PHOTO)
     const dropZone = document.getElementById('photoDropZone'); const fileInput = document.getElementById('photoUploadInput');
     function handleFile(files) {
         if (!files || files.length === 0) return; 
@@ -650,16 +638,7 @@
         fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFile(fileInput.files); });
     }
 
-    // 6. Enquiry Search
-    document.addEventListener('input', function(e) {
-        if (e.target.id === 'enquirySearchInput') {
-            const searchTerm = e.target.value.toLowerCase();
-            const enquiries = document.querySelectorAll('#adminEnquiriesContainer > div:not(.empty-state-msg)');
-            enquiries.forEach(item => { const text = item.textContent ? item.textContent.toLowerCase() : ''; item.style.display = text.includes(searchTerm) ? 'block' : 'none'; });
-        }
-    });
-
-    // 7. Mobile Menu Toggle
+    // 5. Mobile Menu Toggle
     const mobileToggle = document.getElementById('mobileNavToggle'); const tabsContainer = document.querySelector('.tester-tabs'); const mobileBackdrop = document.getElementById('mobileBackdrop');
     function closeMobileMenu() { if (tabsContainer) tabsContainer.classList.remove('mobile-open'); if (mobileBackdrop) mobileBackdrop.style.display = 'none'; }
     function openMobileMenu() { if (tabsContainer) tabsContainer.classList.add('mobile-open'); if (mobileBackdrop) mobileBackdrop.style.display = 'block'; }
@@ -668,7 +647,7 @@
         if (mobileBackdrop) { mobileBackdrop.addEventListener('click', closeMobileMenu); }
     }
 
-    // 8. Layout Enforcement (THIS FIXES THE HALF-SIZE BUG)
+    // 6. Layout Enforcement (FIXES HALF-SIZE BUG)
     function enforceFullScreenLayout() {
         const modal = document.getElementById('testerModal'); const content = document.querySelector('.tester-content'); const login = document.getElementById('testerLogin'); const menu = document.getElementById('testerMenu');
         if (modal) { modal.style.width = '100%'; modal.style.height = '100%'; modal.style.maxWidth = '100%'; modal.style.maxHeight = '100%'; }
@@ -678,43 +657,7 @@
     }
     enforceFullScreenLayout(); window.addEventListener('resize', enforceFullScreenLayout); window.addEventListener('orientationchange', enforceFullScreenLayout);
 
-    // 9. Theme Switcher
-    function applyHavenTheme(themeName) {
-        document.body.classList.remove('staff-dark', 'staff-light', 'staff-warm', 'staff-ocean', 'staff-forest', 'staff-sunset');
-        document.body.classList.add(themeName); localStorage.setItem('haven_portal_theme', themeName);
-        document.querySelectorAll('.theme-card').forEach(card => { if (card.dataset.theme === themeName) card.classList.add('active'); else card.classList.remove('active'); });
-        const messengerThemes = { 'staff-dark': 'midnight', 'staff-light': 'light', 'staff-warm': 'sand', 'staff-ocean': 'ocean', 'staff-forest': 'cyber', 'staff-sunset': 'ember' };
-        const messengerTheme = messengerThemes[themeName] || 'midnight';
-        const iframe = document.querySelector('#tab-haven iframe');
-        if (iframe && iframe.contentWindow) { try { iframe.contentWindow.postMessage({ type: 'set_messenger_theme', theme: messengerTheme }, '*'); } catch(e) {} }
-    }
-    document.querySelectorAll('.theme-card').forEach(card => { card.addEventListener('click', function() { applyHavenTheme(this.dataset.theme); }); });
-    document.getElementById('themeQuickToggle').addEventListener('click', function() { const isDark = document.body.classList.contains('staff-dark'); applyHavenTheme(isDark ? 'staff-light' : 'staff-dark'); });
-    const bodyObserver = new MutationObserver(() => {
-        const savedTheme = localStorage.getItem('haven_portal_theme') || 'staff-dark';
-        if (!document.body.classList.contains(savedTheme)) { document.body.classList.remove('staff-light', 'staff-dark', 'staff-warm', 'staff-ocean', 'staff-forest', 'staff-sunset'); document.body.classList.add(savedTheme); }
-    });
-    bodyObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    const initialTheme = localStorage.getItem('haven_portal_theme') || 'staff-dark'; applyHavenTheme(initialTheme);
-
-    window.addEventListener('message', (e) => {
-        if (e.data && e.data.type === 'set_portal_theme') {
-            const newTheme = e.data.theme;
-            if (!document.body.classList.contains(newTheme)) {
-                document.body.classList.remove('staff-dark', 'staff-light', 'staff-warm', 'staff-ocean', 'staff-forest', 'staff-sunset');
-                document.body.classList.add(newTheme);
-                localStorage.setItem('haven_portal_theme', newTheme);
-                document.querySelectorAll('.theme-card').forEach(card => { if (card.dataset.theme === newTheme) card.classList.add('active'); else card.classList.remove('active'); });
-            }
-        }
-    });
-
-    const havenIframe = document.querySelector('#tab-haven iframe');
-    if (havenIframe) { havenIframe.addEventListener('load', () => { const currentTheme = localStorage.getItem('haven_portal_theme') || 'staff-dark'; applyHavenTheme(currentTheme); }); }
-
-    const lastTab = localStorage.getItem('haven_active_tab');
-    if (lastTab) { const btn = document.querySelector(`.tester-tab-btn[data-tab="${lastTab}"]`); if (btn) btn.click(); }
-
+    // 7. Empty States
     function setupEmptyStateObserver(containerId, message) {
         const container = document.getElementById(containerId); if (!container) return;
         const observer = new MutationObserver(() => {
@@ -723,41 +666,20 @@
             if (realChildren.length === 0) { if (!emptyMsg) { emptyMsg = document.createElement('div'); emptyMsg.className = 'empty-state-msg'; emptyMsg.innerHTML = message; container.appendChild(emptyMsg); } } else { if (emptyMsg) emptyMsg.remove(); }
         }); observer.observe(container, { childList: true });
     }
-        setupEmptyStateObserver('adminEnquiriesContainer', '📭 No new enquiries! Time for a cup of tea. ☕');
+    setupEmptyStateObserver('adminEnquiriesContainer', '📭 No new enquiries! Time for a cup of tea. ☕');
     setupEmptyStateObserver('adminEventContainer', '📅 No upcoming events scheduled.<br><button onclick="document.getElementById(\'newEventTitle\').scrollIntoView({behavior:\'smooth\'})" class="tester-btn" style="margin-top:8px;background:var(--accent);color:#000;">+ Add Event</button>');
     setupEmptyStateObserver('adminPhotoContainer', '🖼️ No photos uploaded yet.<br><button onclick="document.getElementById(\'photoDropZone\').scrollIntoView({behavior:\'smooth\'})" class="tester-btn" style="margin-top:8px;background:var(--accent);color:#000;">+ Upload Photo</button>');
-    setupEmptyStateObserver('adminWilfBlogContainer', '📝 No blog posts yet.');
     setupEmptyStateObserver('adminUpdateContainer', '🔔 No updates posted.<br><button onclick="document.getElementById(\'newUpdateTitle\').scrollIntoView({behavior:\'smooth\'})" class="tester-btn" style="margin-top:8px;background:var(--accent);color:#000;">+ Post Update</button>');
     setupEmptyStateObserver('adminFilmContainer', '🎬 No films in the voting list.<br><button onclick="document.getElementById(\'newFilmTitle\').scrollIntoView({behavior:\'smooth\'})" class="tester-btn" style="margin-top:8px;background:var(--accent);color:#000;">+ Add Film</button>');
     setupEmptyStateObserver('adminCommunityContainer', '🏘️ No community spotlights yet.<br><button onclick="document.getElementById(\'newCommunityTitle\').scrollIntoView({behavior:\'smooth\'})" class="tester-btn" style="margin-top:8px;background:var(--accent);color:#000;">+ Post Spotlight</button>');
     setupEmptyStateObserver('adminCelebContainer', '🎉 No upcoming celebrations.<br><button onclick="document.getElementById(\'newCelebName\').scrollIntoView({behavior:\'smooth\'})" class="tester-btn" style="margin-top:8px;background:var(--accent);color:#000;">+ Add Celebration</button>');
 
-    const musicToggleBtn = document.getElementById('musicToggleBtn'); 
-    const bgMusic = document.getElementById('havenAmbientAudio'); 
-    const musicIconPlay = document.getElementById('musicIconPlay'); 
-    const musicIconPause = document.getElementById('musicIconPause'); 
-    const musicToggleText = document.getElementById('musicToggleText');
-
-    if (musicToggleBtn && bgMusic) {
-        musicToggleBtn.addEventListener('click', function() {
-            if (bgMusic.paused) {
-                bgMusic.play().then(() => {
-                    musicIconPlay.style.display = 'none'; musicIconPause.style.display = 'block'; musicToggleText.textContent = 'Pause Ambient Music';
-                }).catch(err => { showToast('Could not play audio. Ensure ambient1.mp3 is uploaded next to index.html.'); });
-            } else { 
-                bgMusic.pause(); musicIconPlay.style.display = 'block'; musicIconPause.style.display = 'none'; musicToggleText.textContent = 'Play Ambient Music'; 
-            }
-        });
-    }
-    // 14. Keyboard Shortcuts
+    // 8. Keyboard Shortcuts
     document.addEventListener('keydown', function(e) {
-        // Ignore if typing in an input/textarea
         const target = e.target;
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
-
         const menu = document.getElementById('testerMenu');
-        if (!menu || menu.style.display === 'none') return; // Only work if logged in
-
+        if (!menu || menu.style.display === 'none') return;
         let tabName = null;
         switch(e.key.toLowerCase()) {
             case '1': case 'd': tabName = 'dashboard'; break;
@@ -771,60 +693,8 @@
             case '9': case 'b': tabName = 'briefing'; break;
             case 's': tabName = 'settings'; break;
         }
-
-        if(tabName) {
-            const btn = document.querySelector(`button[data-tab="${tabName}"]`);
-            if(btn) btn.click();
-        }
+        if(tabName) { const btn = document.querySelector(`button[data-tab="${tabName}"]`); if(btn) btn.click(); }
     });
-    function initStaffSeasonFX() {
-        const fxContainer = document.getElementById('staff-seasonal-fx'); if (!fxContainer) return;
-        let season = localStorage.getItem('tinkers_season');
-        if (!season || season === 'auto') {
-            const m = new Date().getMonth() + 1;
-            if ([12, 1, 2].includes(m)) season = 'winter'; else if ([3, 4, 5].includes(m)) season = 'spring'; else if ([6, 7, 8].includes(m)) season = 'summer'; else if ([9, 10, 11].includes(m)) season = 'autumn'; else season = 'spring';
-        }
-        fxContainer.innerHTML = ''; const count = 12; 
-        for (let i = 0; i < count; i++) {
-            const p = document.createElement('div'); p.className = `fx-particle fx-${season}`;
-            const size = Math.random() * 4 + 4; p.style.width = size + 'px'; p.style.height = size + 'px';
-            p.style.left = Math.random() * 100 + 'vw'; p.style.animationDuration = (Math.random() * 10 + 15) + 's';
-            p.style.animationDelay = (Math.random() * 15) + 's'; p.style.opacity = Math.random() * 0.3 + 0.1; 
-            fxContainer.appendChild(p);
-        }
-    }
-    initStaffSeasonFX();
-    document.querySelectorAll('.tester-season-btn').forEach(btn => { btn.addEventListener('click', initStaffSeasonFX); });
-
-    document.addEventListener('click', function(e) {
-        const btn = e.target.closest('button');
-        if (btn && (btn.classList.contains('del-event-btn') || btn.classList.contains('del-celeb-btn') || btn.classList.contains('del-update-btn') || btn.classList.contains('del-photo-btn') || btn.classList.contains('del-film-btn') || btn.classList.contains('del-community-btn') || btn.classList.contains('del-enq-btn') || btn.classList.contains('del-featured-btn'))) {
-            setTimeout(() => {
-                if (typeof EventsModule !== 'undefined') EventsModule.loadAdminEvents();
-                if (typeof CelebrationModule !== 'undefined') CelebrationModule.loadAdminCelebrations();
-                if (typeof DatabaseModule !== 'undefined') DatabaseModule.loadUpdates();
-                if (typeof FilmNightModule !== 'undefined') FilmNightModule.loadFilms();
-                if (typeof CommunityModule !== 'undefined') CommunityModule.loadAdminCommunity();
-                if (typeof EnquiriesModule !== 'undefined') EnquiriesModule.loadAdminEnquiries();
-                if (typeof FeaturedEventsModule !== 'undefined') FeaturedEventsModule.loadAdminFeatured();
-                if (typeof TesterModule !== 'undefined' && typeof TesterModule.renderPhotoAdmin === 'function') TesterModule.renderPhotoAdmin();
-            }, 500);
-        }
-    }, true);
-
-    document.addEventListener('click', function(e) {
-        const btn = e.target.closest('button');
-        if (!btn) return;
-        if (btn.id === 'addEventBtn') { setTimeout(() => { if (typeof EventsModule !== 'undefined') { EventsModule.loadAdminEvents(); EventsModule.loadEvents(); } }, 1500); } 
-        else if (btn.id === 'saveMenuBtn') { setTimeout(() => { if (typeof MenuModule !== 'undefined') MenuModule.loadAdminMenu(); }, 1500); }
-        else if (btn.id === 'addWilfBlogBtn') { setTimeout(() => { if (typeof WilfModule !== 'undefined' && WilfModule.loadStatus) WilfModule.loadStatus(); }, 1500); }
-        else if (btn.id === 'addUpdateBtn') { setTimeout(() => { if (typeof DatabaseModule !== 'undefined') DatabaseModule.loadUpdates(); }, 1500); }
-        else if (btn.id === 'addFilmBtn') { setTimeout(() => { if (typeof FilmNightModule !== 'undefined') FilmNightModule.loadFilms(); }, 1500); }
-        else if (btn.id === 'addCommunityBtn') { setTimeout(() => { if (typeof CommunityModule !== 'undefined') { CommunityModule.loadAdminCommunity(); CommunityModule.loadCommunity(); } }, 1500); }
-        else if (btn.id === 'addCelebBtn') { setTimeout(() => { if (typeof CelebrationModule !== 'undefined') { CelebrationModule.loadAdminCelebrations(); CelebrationModule.loadCelebrations(); } }, 1500); }
-        else if (btn.id === 'addFeaturedBtn') { setTimeout(() => { if (typeof FeaturedEventsModule !== 'undefined') { FeaturedEventsModule.loadAdminFeatured(); FeaturedEventsModule.loadFeatured(); } }, 1500); }
-        else if (btn.id === 'saveBriefingBtn') { setTimeout(() => { if (typeof BriefingModule !== 'undefined') BriefingModule.loadBriefing(); }, 1500); }
-    }, true);
 </script>
 </body>
 </html>
