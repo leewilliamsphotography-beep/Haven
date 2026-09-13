@@ -557,8 +557,8 @@
 
 <div id="toast-container"></div>
 <div id="featuredPrintArea" aria-hidden="true"></div>
-
 <script>
+    // GLOBAL TOAST FUNCTION
     function showToast(message) {
         let container = document.getElementById('toast-container');
         if (!container) {
@@ -570,17 +570,14 @@
         setTimeout(() => toast.classList.add('show'), 10);
         setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 3500);
     }
-    const nativeAlert = window.alert;
-    window.alert = function(message) { if (typeof message === 'string' && message.length > 0) { showToast(message); } else { nativeAlert(message); } };
+    window.alert = function(message) { if (typeof message === 'string' && message.length > 0) { showToast(message); } };
     window.addEventListener('error', function(e) {
         console.error('WebView Error:', e.message);
         if (e.message.toLowerCase().includes('network') || e.message.toLowerCase().includes('supabase')) { showToast('App Error: Check network connection.'); }
     });
     const originalPlay = HTMLMediaElement.prototype.play;
     HTMLMediaElement.prototype.play = function() { if (this.id === 'havenAmbientAudio') { return originalPlay.apply(this, arguments); } return Promise.resolve(); };
-</script>
-<script src="app.js?v=4"></script>
-<script>
+
     // 1. Tab Switching
     document.addEventListener('click', function(e) {
         const tabBtn = e.target.closest('.tester-tab-btn');
@@ -618,7 +615,7 @@
         }
     }, true);
 
-    // 4. Drag & Drop Photo Upload (MULTI-PHOTO)
+    // 4. Drag & Drop Photo Upload
     const dropZone = document.getElementById('photoDropZone'); const fileInput = document.getElementById('photoUploadInput');
     function handleFile(files) {
         if (!files || files.length === 0) return; 
@@ -647,7 +644,7 @@
         if (mobileBackdrop) { mobileBackdrop.addEventListener('click', closeMobileMenu); }
     }
 
-    // 6. Layout Enforcement (FIXES HALF-SIZE BUG)
+    // 6. Layout Enforcement
     function enforceFullScreenLayout() {
         const modal = document.getElementById('testerModal'); const content = document.querySelector('.tester-content'); const login = document.getElementById('testerLogin'); const menu = document.getElementById('testerMenu');
         if (modal) { modal.style.width = '100%'; modal.style.height = '100%'; modal.style.maxWidth = '100%'; modal.style.maxHeight = '100%'; }
