@@ -572,8 +572,7 @@
     const originalPlay = HTMLMediaElement.prototype.play;
     HTMLMediaElement.prototype.play = function() { if (this.id === 'havenAmbientAudio') { return originalPlay.apply(this, arguments); } return Promise.resolve(); };
 </script>
-<script src="app.js"></script>
-
+<script src="app.js?v=4"></script>
 <script>
     // 1. Tab Switching
     document.addEventListener('click', function(e) {
